@@ -10,9 +10,9 @@ interface StationFaviconProps {
 }
 
 const sizeClasses = {
-  sm: "h-8 w-8",
-  md: "h-10 w-10",
-  lg: "h-32 w-32",
+  sm: "h-9 w-9 rounded-full",
+  md: "h-11 w-11 rounded-2xl",
+  lg: "h-28 w-28 rounded-3xl sm:h-36 sm:w-36",
 };
 
 function RadioIcon({ className }: { className?: string }) {
@@ -47,9 +47,11 @@ export default function StationFavicon({
   if (!src || error) {
     return (
       <div
-        className={`${sizeClass} flex shrink-0 items-center justify-center rounded-lg bg-[var(--surface)] text-[var(--muted)] ${className}`}
+        className={`${sizeClass} flex shrink-0 items-center justify-center bg-[var(--surface)] text-[var(--muted)] ${className}`}
       >
-        <RadioIcon className={size === "lg" ? "h-12 w-12" : "h-5 w-5"} />
+        <RadioIcon
+          className={size === "lg" ? "h-10 w-10 sm:h-12 sm:w-12" : "h-4 w-4"}
+        />
       </div>
     );
   }
@@ -59,7 +61,7 @@ export default function StationFavicon({
     <img
       src={src}
       alt={alt}
-      className={`${sizeClass} shrink-0 rounded-lg bg-[var(--surface)] object-cover ${className}`}
+      className={`${sizeClass} shrink-0 bg-[var(--surface)] object-cover ${className}`}
       onError={() => setError(true)}
     />
   );

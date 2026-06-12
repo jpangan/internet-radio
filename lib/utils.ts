@@ -1,3 +1,15 @@
+import type { Station } from "./types";
+
+export function dedupeStations(stations: Station[]): Station[] {
+  const seen = new Set<string>();
+  return stations.filter((station) => {
+    const key = station.stationuuid || `${station.name}\0${station.url_resolved}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
 export function countryCodeToFlag(countryCode: string): string {
   if (!countryCode || countryCode.length !== 2) return "🌐";
   const code = countryCode.toUpperCase();
