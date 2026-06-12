@@ -10,10 +10,15 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: "Internet Radio",
   description: "Stream radio stations from around the world",
+  manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
     title: "Internet Radio",
+    startupImage: [],
+  },
+  formatDetection: {
+    telephone: false,
   },
 };
 
@@ -21,7 +26,10 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
-  themeColor: "#07070f",
+  themeColor: [
+    { media: "(prefers-color-scheme: dark)", color: "#07070f" },
+    { media: "(prefers-color-scheme: light)", color: "#07070f" },
+  ],
 };
 
 export default function RootLayout({
@@ -33,7 +41,7 @@ export default function RootLayout({
     <html lang="en">
       <head>
         <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-        <link rel="icon" href="/favicon.svg" sizes="any" />
+        <link rel="mask-icon" href="/favicon.svg" color="#7c6cf0" />
       </head>
       <body className={`${inter.className} antialiased`}>{children}</body>
     </html>
