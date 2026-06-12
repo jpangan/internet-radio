@@ -1,30 +1,79 @@
 "use client";
 
-import { useCallback, useState } from "react";
-import Explorer from "@/components/Explorer";
+import { useCallback, useEffect, useState } from "react";
 import Player from "@/components/Player";
-import type { Station } from "@/lib/types";
+import CountryModal from "@/components/CountryModal";
+import type { Country, Station } from "@/lib/types";
+import { dedupeStations } from "@/lib/utils";
+import FlagIcon from "@/components/FlagIcon";
 
-type MobilePanel = "explorer" | "player";
+const COUNTRY_KEY = "ir-country";
+const STATION_KEY = "ir-station";
 
 export default function Home() {
   const [currentStation, setCurrentStation] = useState<Station | null>(null);
   const [stationList, setStationList] = useState<Station[]>([]);
-  const [mobilePanel, setMobilePanel] = useState<MobilePanel>("explorer");
+  const [selectedCountry, setSelectedCountry] = useState<Country | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
 
+  // Restore last session from localStorage
+  useEffect(() => {
+    const savedCountryStr = localStorage.getItem(COUNTRY_KEY);
+    const savedStationStr = localStorage.getItem(STATION_KEY);
+    if (!savedCountryStr) return;
+
+    try {
+      const savedCountry: Country = JSON.parse(savedCountryStr);
+      setSelectedCountry(savedCountry);
+
+      if (savedStationStr) {
+        const savedStation: Station = JSON.parse(savedStationStr);
+        // Set station immediately so the player can start loading
+        setCurrentStation(savedStation);
+      }
+
+      // Fetch the station list in the background for navigation
+      fetch(`/api/stations/${encodeURIComponent(savedCountry.name)}`)
+        .then((res) => res.json())
+        .then((data: Station[]) => {
+          const stations = dedupeStations(data);
+          setStationList(stations);
+          if (savedStationStr) {
+            const savedStation: Station = JSON.parse(savedStationStr);
+            const found = stations.find(
+              (s) => s.stationuuid === savedStation.stationuuid
+            );
+            if (found) setCurrentStation(found);
+          }
+        })
+        .catch(() => {});
+    } catch {
+      // Ignore malformed saved data
+    }
+  }, []);
+
+  // Persist station changes (e.g. next/prev navigation)
+  useEffect(() => {
+    if (currentStation) {
+      localStorage.setItem(STATION_KEY, JSON.stringify(currentStation));
+    }
+  }, [currentStation]);
+
   const handleSelectStation = useCallback(
-    (station: Station, list: Station[]) => {
-      setStationList(list);
+    (station: Station, list: Station[], country: Country) => {
       setCurrentStation(station);
-      setMobilePanel("player");
+      setStationList(list);
+      setSelectedCountry(country);
+      localStorage.setItem(COUNTRY_KEY, JSON.stringify(country));
+      localStorage.setItem(STATION_KEY, JSON.stringify(station));
+      setIsModalOpen(false);
     },
     []
   );
 
   const handleClearStation = useCallback(() => {
     setCurrentStation(null);
-    setMobilePanel("explorer");
   }, []);
 
   const currentIndex =
@@ -46,7 +95,9 @@ export default function Home() {
       );
       if (index === -1) return;
       setCurrentStation(
-        stationList[(index + direction + stationList.length) % stationList.length]
+        stationList[
+          (index + direction + stationList.length) % stationList.length
+        ]
       );
     },
     [currentStation, stationList]
@@ -62,17 +113,111 @@ export default function Home() {
   );
 
   return (
-    <div className="flex h-dvh flex-col overflow-hidden bg-[var(--background)] md:flex-row">
-      <Explorer
-        currentStation={currentStation}
-        onSelectStation={handleSelectStation}
-        className={
-          mobilePanel === "explorer"
-            ? "flex min-h-0 flex-1 md:flex-none"
-            : "hidden md:flex md:flex-none"
-        }
+    <div
+      className="flex h-dvh flex-col overflow-hidden"
+      style={{ background: "var(--bg)" }}
+    >
+      {/* Full-screen background gradient */}
+      <div
+        className="pointer-events-none fixed inset-0 -z-10"
+        style={{
+          background:
+            "radial-gradient(ellipse 100% 60% at 50% -5%, rgba(124,108,240,0.13), transparent 65%)",
+        }}
       />
 
+      {/* App header */}
+      <header
+        className="glass-panel relative z-10 shrink-0 border-b"
+        style={{
+          borderColor: "rgba(255,255,255,0.07)",
+          paddingTop: "max(0.75rem, var(--safe-top))",
+        }}
+      >
+        <div className="mx-auto flex max-w-2xl items-center gap-3 px-4 pb-3">
+          {/* Logo mark + wordmark */}
+          <div className="flex flex-1 min-w-0 items-center gap-2.5">
+            <RadioMark />
+            <div>
+              <p className="text-sm font-bold tracking-tight leading-none text-white">
+                Internet Radio
+              </p>
+              <p
+                className="mt-0.5 text-[10px] leading-none"
+                style={{ color: "rgba(255,255,255,0.3)" }}
+              >
+                Stream the world
+              </p>
+            </div>
+          </div>
+
+          {/* Active country pill */}
+          {selectedCountry && (
+            <button
+              type="button"
+              onClick={() => setIsModalOpen(true)}
+              className="flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-all"
+              style={{
+                background: "rgba(255,255,255,0.06)",
+                border: "1px solid rgba(255,255,255,0.1)",
+                color: "rgba(255,255,255,0.7)",
+                maxWidth: "160px",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = "rgba(255,255,255,0.1)";
+                e.currentTarget.style.color = "white";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = "rgba(255,255,255,0.06)";
+                e.currentTarget.style.color = "rgba(255,255,255,0.7)";
+              }}
+            >
+              <FlagIcon
+                code={selectedCountry.iso_3166_1}
+                className="h-3 w-4 shrink-0 rounded-[2px] object-cover"
+              />
+              <span className="truncate">{selectedCountry.name}</span>
+            </button>
+          )}
+
+          {/* Globe button */}
+          <button
+            type="button"
+            onClick={() => setIsModalOpen(true)}
+            aria-label="Select country"
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition-all"
+            style={{
+              background: "rgba(255,255,255,0.06)",
+              border: "1px solid rgba(255,255,255,0.1)",
+              color: "rgba(255,255,255,0.55)",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = "rgba(124,108,240,0.2)";
+              e.currentTarget.style.borderColor = "rgba(124,108,240,0.4)";
+              e.currentTarget.style.color = "#9488f5";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = "rgba(255,255,255,0.06)";
+              e.currentTarget.style.borderColor = "rgba(255,255,255,0.1)";
+              e.currentTarget.style.color = "rgba(255,255,255,0.55)";
+            }}
+          >
+            <svg
+              className="h-4.5 w-4.5"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.75"
+              strokeLinecap="round"
+            >
+              <circle cx="12" cy="12" r="10" />
+              <path d="M12 2a14.5 14.5 0 0 0 0 20M12 2a14.5 14.5 0 0 1 0 20M2 12h20" />
+            </svg>
+          </button>
+        </div>
+      </header>
+
+      {/* Player */}
       <Player
         station={currentStation}
         stationList={stationList}
@@ -81,75 +226,48 @@ export default function Home() {
         onNext={() => handleAdjacentStation(1)}
         onSelectStationAt={handleSelectStationAt}
         onClear={handleClearStation}
-        onBrowse={() => setMobilePanel("explorer")}
+        onOpenCountrySelector={() => setIsModalOpen(true)}
         onPlayingChange={setIsPlaying}
-        className={
-          mobilePanel === "player"
-            ? "flex min-h-0 flex-1"
-            : "hidden md:flex md:flex-1 md:min-h-0"
-        }
+        className="flex min-h-0 flex-1"
       />
 
-      <nav
-        className="glass-panel shrink-0 border-t border-[var(--border-subtle)] md:hidden"
-        style={{ paddingBottom: "var(--safe-bottom)" }}
-        aria-label="Main navigation"
-      >
-        <div className="flex h-14 px-2">
-          <TabButton
-            active={mobilePanel === "explorer"}
-            onClick={() => setMobilePanel("explorer")}
-            label="Browse"
-          >
-            <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <circle cx="11" cy="11" r="8" />
-              <path d="m21 21-4.3-4.3" />
-            </svg>
-          </TabButton>
-          <TabButton
-            active={mobilePanel === "player"}
-            onClick={() => setMobilePanel("player")}
-            label="Player"
-            badge={Boolean(currentStation && isPlaying)}
-          >
-            <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <circle cx="12" cy="12" r="10" />
-              <polygon points="10 8 16 12 10 16 10 8" fill="currentColor" stroke="none" />
-            </svg>
-          </TabButton>
-        </div>
-      </nav>
+      {/* Country / station selector modal */}
+      <CountryModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onSelectStation={handleSelectStation}
+        currentStation={currentStation}
+        initialCountry={selectedCountry}
+      />
+
+      {/* Keep isPlaying in state for potential future badge use */}
+      <span className="sr-only">{isPlaying ? "Playing" : "Paused"}</span>
     </div>
   );
 }
 
-function TabButton({
-  active,
-  onClick,
-  label,
-  badge,
-  children,
-}: {
-  active: boolean;
-  onClick: () => void;
-  label: string;
-  badge?: boolean;
-  children: React.ReactNode;
-}) {
+function RadioMark() {
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-current={active ? "page" : undefined}
-      className={`relative flex flex-1 flex-col items-center justify-center gap-0.5 rounded-lg text-[11px] font-medium transition-colors ${
-        active ? "text-[var(--accent)]" : "text-[var(--muted)]"
-      }`}
+    <div
+      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl"
+      style={{
+        background: "linear-gradient(135deg, rgba(148,136,245,0.25), rgba(124,108,240,0.15))",
+        border: "1px solid rgba(124,108,240,0.35)",
+      }}
     >
-      {children}
-      {label}
-      {badge && (
-        <span className="absolute top-2 right-[calc(50%-1.1rem)] h-1.5 w-1.5 rounded-full bg-[var(--live)]" />
-      )}
-    </button>
+      <svg
+        className="h-5 w-5"
+        style={{ color: "#9488f5" }}
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.75"
+        strokeLinecap="round"
+      >
+        <circle cx="12" cy="14" r="2" fill="currentColor" stroke="none" />
+        <path d="M8.5 10.5C9.7 9.3 10.8 8.8 12 8.8s2.3.5 3.5 1.7" />
+        <path d="M5.5 7.5C7.4 5.6 9.6 4.6 12 4.6s4.6 1 6.5 2.9" />
+      </svg>
+    </div>
   );
 }
