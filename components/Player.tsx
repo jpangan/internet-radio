@@ -18,14 +18,6 @@ interface PlayerProps {
   className?: string;
 }
 
-function getAdjacentStation(
-  list: Station[],
-  index: number,
-  direction: 1 | -1
-): Station | null {
-  if (list.length === 0 || index < 0) return null;
-  return list[(index + direction + list.length) % list.length];
-}
 
 const VOLUME_KEY = "internet-radio-volume";
 const MUTED_KEY = "internet-radio-muted";
@@ -61,12 +53,6 @@ export default function Player({
   className = "",
 }: PlayerProps) {
   const canTune = stationList.length > 1 && currentIndex >= 0;
-  const prevStation = canTune
-    ? getAdjacentStation(stationList, currentIndex, -1)
-    : null;
-  const nextStation = canTune
-    ? getAdjacentStation(stationList, currentIndex, 1)
-    : null;
 
   const audioRef = useRef<HTMLAudioElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -228,6 +214,43 @@ export default function Player({
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [station, canTune, togglePlay, toggleMute, onPrevious, onNext, onClear]);
+
+  /* ── Media Session API (lock screen / notification controls) ── */
+  useEffect(() => {
+    if (!("mediaSession" in navigator) || !station) return;
+
+    navigator.mediaSession.metadata = new MediaMetadata({
+      title: station.name,
+      artist: [station.country, station.language].filter(Boolean).join(" · "),
+      album: "Internet Radio",
+      artwork: station.favicon
+        ? [{ src: station.favicon, sizes: "96x96", type: "image/png" }]
+        : [{ src: "/icon.png", sizes: "192x192", type: "image/png" }],
+    });
+
+    navigator.mediaSession.setActionHandler("play", play);
+    navigator.mediaSession.setActionHandler("pause", pause);
+    navigator.mediaSession.setActionHandler(
+      "previoustrack",
+      canTune ? onPrevious : null
+    );
+    navigator.mediaSession.setActionHandler(
+      "nexttrack",
+      canTune ? onNext : null
+    );
+
+    return () => {
+      navigator.mediaSession.setActionHandler("play", null);
+      navigator.mediaSession.setActionHandler("pause", null);
+      navigator.mediaSession.setActionHandler("previoustrack", null);
+      navigator.mediaSession.setActionHandler("nexttrack", null);
+    };
+  }, [station, isPlaying, canTune, play, pause, onPrevious, onNext]);
+
+  useEffect(() => {
+    if (!("mediaSession" in navigator)) return;
+    navigator.mediaSession.playbackState = isPlaying ? "playing" : "paused";
+  }, [isPlaying]);
 
   /* ── Empty state ─────────────────────────────────────────── */
   if (!station) {
