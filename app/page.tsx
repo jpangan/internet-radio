@@ -69,7 +69,7 @@ export default function Home() {
         className={
           mobilePanel === "explorer"
             ? "flex min-h-0 flex-1 md:flex-none"
-            : "hidden md:flex"
+            : "hidden md:flex md:flex-none"
         }
       />
 
@@ -86,7 +86,7 @@ export default function Home() {
         className={
           mobilePanel === "player"
             ? "flex min-h-0 flex-1"
-            : "hidden md:flex"
+            : "hidden md:flex md:flex-1 md:min-h-0"
         }
       />
 

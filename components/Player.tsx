@@ -275,7 +275,7 @@ export default function Player({
   if (!station) {
     return (
       <main
-        className={`relative flex-col items-center justify-center overflow-hidden bg-[var(--background)] px-6 ${className}`}
+        className={`relative flex flex-col items-center justify-center overflow-hidden bg-[var(--background)] px-6 ${className}`}
       >
         <div
           className="pointer-events-none absolute inset-0"

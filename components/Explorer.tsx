@@ -95,7 +95,7 @@ export default function Explorer({
       className={`h-full w-full shrink-0 flex-col border-r border-[var(--border-subtle)] bg-[var(--sidebar)] md:w-[300px] lg:w-[320px] ${className}`}
     >
       <div
-        className="border-b border-[var(--border-subtle)] px-4 pb-3"
+        className="shrink-0 border-b border-[var(--border-subtle)] px-4 pb-3"
         style={{ paddingTop: "max(0.875rem, env(safe-area-inset-top))" }}
       >
         <div className="mb-3 flex items-center gap-2.5">
@@ -142,7 +142,7 @@ export default function Explorer({
         <button
           type="button"
           onClick={handleBack}
-          className="flex min-h-10 w-full items-center gap-2 border-b border-[var(--border-subtle)] px-4 py-2.5 text-sm text-[var(--accent)] transition-colors hover:bg-[var(--surface-hover)]"
+          className="flex shrink-0 min-h-10 w-full items-center gap-2 border-b border-[var(--border-subtle)] px-4 py-2.5 text-sm text-[var(--accent)] transition-colors hover:bg-[var(--surface-hover)]"
         >
           <svg className="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <path d="M19 12H5M12 19l-7-7 7-7" />
