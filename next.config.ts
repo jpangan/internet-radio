@@ -9,8 +9,12 @@ const withPWA = withPWAInit({
   fallbacks: {
     document: "/offline",
   },
+  // Activate new service worker immediately and claim all open tabs so
+  // users always get the latest version without needing to close the app.
   workboxOptions: {
     disableDevLogs: true,
+    skipWaiting: true,
+    clientsClaim: true,
   },
 });
 
