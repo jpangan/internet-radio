@@ -13,7 +13,7 @@ interface PlayerProps {
   onNext: () => void;
   onSelectStationAt: (index: number) => void;
   onClear: () => void;
-  onBrowse: () => void;
+  onOpenCountrySelector: () => void;
   onPlayingChange: (playing: boolean) => void;
   className?: string;
 }
@@ -29,6 +29,7 @@ function getAdjacentStation(
 
 const VOLUME_KEY = "internet-radio-volume";
 const MUTED_KEY = "internet-radio-muted";
+const STATIONS_OPEN_KEY = "internet-radio-stations-open";
 
 function readStoredVolume(): number {
   if (typeof window === "undefined") return 0.8;
@@ -42,32 +43,9 @@ function readStoredMuted(): boolean {
   return localStorage.getItem(MUTED_KEY) === "true";
 }
 
-function IconButton({
-  onClick,
-  disabled,
-  label,
-  children,
-  size = "md",
-}: {
-  onClick: () => void;
-  disabled?: boolean;
-  label: string;
-  children: React.ReactNode;
-  size?: "md" | "lg";
-}) {
-  const dim = size === "lg" ? "h-14 w-14" : "h-10 w-10";
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={disabled}
-      aria-label={label}
-      title={label}
-      className={`${dim} flex shrink-0 items-center justify-center rounded-full text-[var(--foreground)] transition-all active:scale-95 disabled:cursor-not-allowed disabled:opacity-35 hover:bg-[var(--surface-hover)]`}
-    >
-      {children}
-    </button>
-  );
+function readStoredStationsOpen(): boolean {
+  if (typeof window === "undefined") return false;
+  return localStorage.getItem(STATIONS_OPEN_KEY) === "true";
 }
 
 export default function Player({
@@ -78,7 +56,7 @@ export default function Player({
   onNext,
   onSelectStationAt,
   onClear,
-  onBrowse,
+  onOpenCountrySelector,
   onPlayingChange,
   className = "",
 }: PlayerProps) {
@@ -97,6 +75,7 @@ export default function Player({
   const [isMuted, setIsMuted] = useState(readStoredMuted);
   const [error, setError] = useState<string | null>(null);
   const [reloadToken, setReloadToken] = useState(0);
+  const [stationsOpen, setStationsOpen] = useState(readStoredStationsOpen);
 
   const play = useCallback(async () => {
     const audio = audioRef.current;
@@ -114,15 +93,6 @@ export default function Player({
   const pause = useCallback(() => {
     audioRef.current?.pause();
     setIsPlaying(false);
-  }, []);
-
-  const stop = useCallback(() => {
-    const audio = audioRef.current;
-    if (!audio) return;
-    audio.pause();
-    audio.currentTime = 0;
-    setIsPlaying(false);
-    setIsLoading(false);
   }, []);
 
   const togglePlay = useCallback(() => {
@@ -144,7 +114,6 @@ export default function Player({
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio || !station) return;
-
     let cancelled = false;
 
     const switchStation = async () => {
@@ -193,11 +162,7 @@ export default function Player({
     const audio = audioRef.current;
     if (!audio) return;
 
-    const onPlaying = () => {
-      setIsPlaying(true);
-      setIsLoading(false);
-      setError(null);
-    };
+    const onPlaying = () => { setIsPlaying(true); setIsLoading(false); setError(null); };
     const onPause = () => setIsPlaying(false);
     const onWaiting = () => setIsLoading(true);
     const onCanPlay = () => setIsLoading(false);
@@ -249,10 +214,6 @@ export default function Player({
           e.preventDefault();
           toggleMute();
           break;
-        case "KeyS":
-          e.preventDefault();
-          stop();
-          break;
         case "Escape":
           e.preventDefault();
           onClear();
@@ -261,106 +222,118 @@ export default function Player({
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [
-    station,
-    canTune,
-    togglePlay,
-    toggleMute,
-    stop,
-    onPrevious,
-    onNext,
-    onClear,
-  ]);
+  }, [station, canTune, togglePlay, toggleMute, onPrevious, onNext, onClear]);
 
+  /* ── Empty state ─────────────────────────────────────────── */
   if (!station) {
     return (
       <main
-        className={`relative flex flex-col items-center justify-center overflow-hidden bg-[var(--background)] px-6 ${className}`}
+        className={`relative flex flex-col items-center justify-center overflow-hidden px-6 ${className}`}
+        style={{ background: "var(--bg)" }}
       >
+        {/* Background glow */}
         <div
           className="pointer-events-none absolute inset-0"
           style={{
             background:
-              "radial-gradient(ellipse 60% 50% at 50% 30%, color-mix(in srgb, var(--accent) 12%, transparent), transparent)",
+              "radial-gradient(ellipse 70% 55% at 50% 50%, rgba(124,108,240,0.1), transparent 70%)",
           }}
         />
-        <div className="relative flex flex-col items-center">
-          <div className="mb-6 flex h-24 w-24 items-center justify-center rounded-3xl bg-[var(--surface)] text-[var(--muted)]">
+
+        <div className="relative flex flex-col items-center text-center max-w-xs">
+          {/* Globe icon */}
+          <div
+            className="mb-7 flex h-24 w-24 items-center justify-center rounded-[28px]"
+            style={{
+              background: "rgba(124,108,240,0.1)",
+              border: "1px solid rgba(124,108,240,0.2)",
+              boxShadow: "0 8px 40px rgba(124,108,240,0.15)",
+            }}
+          >
             <svg
               className="h-12 w-12"
+              style={{ color: "#9488f5" }}
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
               strokeWidth="1.5"
+              strokeLinecap="round"
             >
-              <path d="M4.9 19.1C1 15.2 1 8.8 4.9 4.9" />
-              <path d="M7.8 16.2c-2.3-2.3-2.3-6.1 0-8.5" />
-              <circle cx="12" cy="12" r="2" />
-              <path d="M16.2 7.8c2.3 2.3 2.3 6.1 0 8.5" />
-              <path d="M19.1 4.9C23 8.8 23 15.1 19.1 19" />
+              <circle cx="12" cy="12" r="10" />
+              <path d="M12 2a14.5 14.5 0 0 0 0 20M12 2a14.5 14.5 0 0 1 0 20M2 12h20" />
             </svg>
           </div>
-          <h2 className="text-xl font-semibold">Nothing playing</h2>
-          <p className="mt-2 max-w-xs text-center text-sm text-[var(--muted)]">
-            Pick a country and station from the explorer to start listening.
+
+          <h2 className="text-2xl font-bold tracking-tight text-white">
+            Nothing playing
+          </h2>
+          <p
+            className="mt-2.5 text-sm leading-relaxed"
+            style={{ color: "rgba(255,255,255,0.45)" }}
+          >
+            Choose a country and station to start streaming radio from around
+            the world.
           </p>
+
           <button
             type="button"
-            onClick={onBrowse}
-            className="mt-8 rounded-full bg-[var(--accent)] px-6 py-2.5 text-sm font-medium text-white active:scale-95 md:hidden"
+            onClick={onOpenCountrySelector}
+            className="mt-8 flex items-center gap-2 rounded-full px-7 py-3 text-sm font-semibold text-white transition-all active:scale-95"
+            style={{
+              background: "linear-gradient(135deg, #9488f5, #7c6cf0)",
+              boxShadow: "0 4px 24px rgba(124,108,240,0.45)",
+            }}
+            onMouseEnter={(e) =>
+              (e.currentTarget.style.boxShadow =
+                "0 6px 32px rgba(124,108,240,0.6)")
+            }
+            onMouseLeave={(e) =>
+              (e.currentTarget.style.boxShadow =
+                "0 4px 24px rgba(124,108,240,0.45)")
+            }
           >
-            Browse stations
+            <svg
+              className="h-4 w-4"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+            >
+              <circle cx="12" cy="12" r="10" />
+              <path d="M12 2a14.5 14.5 0 0 0 0 20M12 2a14.5 14.5 0 0 1 0 20M2 12h20" />
+            </svg>
+            Select Country
           </button>
         </div>
       </main>
     );
   }
 
+  /* ── Active player ──────────────────────────────────────── */
   const tags = parseTags(station.tags, 6);
   const volumePercent = Math.round((isMuted ? 0 : volume) * 100);
 
   return (
-    <main className={`relative flex min-h-0 flex-col bg-[var(--background)] ${className}`}>
+    <main
+      className={`relative flex min-h-0 flex-col ${className}`}
+      style={{ background: "var(--bg)" }}
+    >
       <audio ref={audioRef} preload="none" playsInline />
 
+      {/* Background radial gradient */}
       <div
         className="pointer-events-none absolute inset-0"
         style={{
           background:
-            "radial-gradient(ellipse 70% 45% at 50% 0%, color-mix(in srgb, var(--accent) 14%, transparent), transparent 70%)",
+            "radial-gradient(ellipse 80% 50% at 50% 0%, rgba(124,108,240,0.12), transparent 65%)",
         }}
       />
 
-      <header
-        className="relative flex shrink-0 items-center border-b border-[var(--border-subtle)] px-4 py-3 md:px-6"
-        style={{ paddingTop: "max(0.75rem, env(safe-area-inset-top))" }}
-      >
-        <button
-          type="button"
-          onClick={onBrowse}
-          className="mr-2 flex h-9 items-center gap-1.5 rounded-full px-2.5 text-sm text-[var(--muted)] transition-colors hover:bg-[var(--surface)] hover:text-[var(--foreground)] md:hidden"
-        >
-          <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M19 12H5M12 19l-7-7 7-7" />
-          </svg>
-          Browse
-        </button>
-        <span className="text-xs font-medium tracking-widest text-[var(--muted)] uppercase md:text-sm">
-          Now Playing
-        </span>
-        {isPlaying && !error && (
-          <span className="ml-auto flex items-center gap-1.5 rounded-full bg-[color-mix(in_srgb,var(--live)_12%,transparent)] px-2.5 py-1 text-xs font-medium text-[var(--live)]">
-            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[var(--live)]" />
-            Live
-          </span>
-        )}
-        {isLoading && (
-          <span className="ml-auto text-xs text-[var(--muted)]">Connecting…</span>
-        )}
-      </header>
-
-      <div className="relative flex min-h-0 flex-1 flex-col items-center justify-center px-6 py-6 md:py-8">
-        <div className="artwork-glow mb-5 rounded-3xl sm:mb-6">
+      {/* Station info */}
+      <div className="relative flex min-h-0 flex-1 flex-col items-center justify-center px-6 py-8 md:py-10">
+        {/* Artwork */}
+        <div className="artwork-glow mb-6 rounded-3xl sm:mb-7">
           <StationFavicon
             src={station.favicon}
             alt={station.name}
@@ -368,11 +341,41 @@ export default function Player({
           />
         </div>
 
-        <h1 className="max-w-xl text-center text-xl leading-snug font-bold tracking-tight sm:text-2xl md:text-[1.65rem]">
+        {/* Live / Loading badge */}
+        <div className="mb-3 flex h-6 items-center justify-center">
+          {isPlaying && !error && (
+            <span
+              className="flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-wider"
+              style={{
+                background: "rgba(52,211,153,0.12)",
+                color: "#34d399",
+                border: "1px solid rgba(52,211,153,0.2)",
+              }}
+            >
+              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[#34d399]" />
+              Live
+            </span>
+          )}
+          {isLoading && !error && (
+            <span
+              className="text-xs font-medium"
+              style={{ color: "rgba(255,255,255,0.35)" }}
+            >
+              Connecting…
+            </span>
+          )}
+        </div>
+
+        {/* Station name */}
+        <h1 className="max-w-xl text-center text-2xl font-bold leading-snug tracking-tight text-white sm:text-3xl">
           {station.name}
         </h1>
 
-        <p className="mt-2 text-center text-sm text-[var(--muted)]">
+        {/* Metadata */}
+        <p
+          className="mt-2 text-center text-sm"
+          style={{ color: "rgba(255,255,255,0.4)" }}
+        >
           {[station.country, station.language].filter(Boolean).join(" · ")}
           {(station.codec || station.bitrate) && (
             <>
@@ -384,12 +387,17 @@ export default function Player({
           )}
         </p>
 
+        {/* Tags */}
         {tags.length > 0 && (
-          <div className="mt-4 flex max-w-md flex-wrap justify-center gap-1.5">
+          <div className="mt-4 flex max-w-sm flex-wrap justify-center gap-1.5">
             {tags.map((tag) => (
               <span
                 key={tag}
-                className="rounded-full bg-[var(--surface)] px-2.5 py-0.5 text-xs text-[var(--muted)]"
+                className="rounded-full px-2.5 py-0.5 text-[11px] font-medium"
+                style={{
+                  background: "rgba(255,255,255,0.07)",
+                  color: "rgba(255,255,255,0.45)",
+                }}
               >
                 {tag}
               </span>
@@ -397,13 +405,23 @@ export default function Player({
           </div>
         )}
 
+        {/* Error */}
         {error && (
-          <div className="mt-5 flex items-center gap-3 rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-2.5">
-            <p className="text-sm text-red-300">{error}</p>
+          <div
+            className="mt-5 flex items-center gap-3 rounded-2xl px-4 py-3"
+            style={{
+              background: "rgba(239,68,68,0.1)",
+              border: "1px solid rgba(239,68,68,0.2)",
+            }}
+          >
+            <p className="text-sm" style={{ color: "#fca5a5" }}>
+              {error}
+            </p>
             <button
               type="button"
               onClick={retry}
-              className="shrink-0 rounded-lg bg-[var(--surface)] px-3 py-1.5 text-xs font-medium"
+              className="shrink-0 rounded-xl px-3 py-1.5 text-xs font-semibold text-white transition-colors"
+              style={{ background: "rgba(255,255,255,0.1)" }}
             >
               Retry
             </button>
@@ -411,68 +429,13 @@ export default function Player({
         )}
       </div>
 
-      <div className="glass-panel relative shrink-0 border-t border-[var(--border-subtle)]">
-        {canTune && (
-          <div className="border-b border-[var(--border-subtle)] px-4 py-3 md:px-6">
-            <div className="mb-2.5 flex items-center justify-between">
-              <span className="text-xs font-medium text-[var(--muted)]">
-                More from {station.country}
-              </span>
-              <span className="text-xs tabular-nums text-[var(--muted)]">
-                {currentIndex + 1} / {stationList.length}
-              </span>
-            </div>
-
-            {(prevStation || nextStation) && (
-              <div className="mb-2.5 hidden items-center justify-between gap-3 sm:flex">
-                <button
-                  type="button"
-                  onClick={onPrevious}
-                  className="min-w-0 flex-1 truncate text-left text-xs text-[var(--muted)] transition-colors hover:text-[var(--foreground)]"
-                >
-                  ‹ {prevStation?.name}
-                </button>
-                <button
-                  type="button"
-                  onClick={onNext}
-                  className="min-w-0 flex-1 truncate text-right text-xs text-[var(--muted)] transition-colors hover:text-[var(--foreground)]"
-                >
-                  {nextStation?.name} ›
-                </button>
-              </div>
-            )}
-
-            <div className="flex gap-2 overflow-x-auto overscroll-x-contain px-0.5 py-2 [-webkit-overflow-scrolling:touch]">
-              {stationList.map((s, i) => {
-                const active = i === currentIndex;
-                return (
-                  <button
-                    key={s.stationuuid}
-                    type="button"
-                    onClick={() => onSelectStationAt(i)}
-                    aria-current={active ? "true" : undefined}
-                    className={`flex w-[4.75rem] shrink-0 flex-col items-center gap-1.5 rounded-xl border p-1.5 transition-all ${
-                      active
-                        ? "border-[var(--accent)] bg-[color-mix(in_srgb,var(--accent)_18%,var(--surface))]"
-                        : "border-transparent hover:bg-[var(--surface-hover)]"
-                    }`}
-                  >
-                    <StationFavicon src={s.favicon} alt={s.name} size="sm" />
-                    <span
-                      className={`line-clamp-2 w-full text-center text-[9px] leading-tight ${
-                        active ? "font-medium text-[var(--foreground)]" : "text-[var(--muted)]"
-                      }`}
-                    >
-                      {s.name}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
-        <div className="px-4 py-4 md:px-6 md:py-5">
+      {/* Controls panel */}
+      <div
+        className="glass-panel relative shrink-0"
+        style={{ borderTop: "1px solid rgba(255,255,255,0.07)" }}
+      >
+        {/* Playback controls */}
+        <div className="px-4 pt-5 pb-4 md:px-6">
           <div className="mx-auto flex max-w-md items-center justify-center gap-1 sm:gap-2">
             <IconButton onClick={onPrevious} disabled={!canTune} label="Previous">
               <svg className="h-5 w-5" viewBox="0 0 24 24" fill="currentColor">
@@ -485,20 +448,32 @@ export default function Player({
               onClick={togglePlay}
               disabled={isLoading && !error}
               aria-label={isPlaying ? "Pause" : "Play"}
-              className="mx-1 flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-[var(--accent)] text-white shadow-lg shadow-[var(--accent-glow)] transition-all active:scale-95 disabled:opacity-50 hover:bg-[var(--accent-hover)]"
+              className="mx-2 flex h-16 w-16 shrink-0 items-center justify-center rounded-full text-white transition-all active:scale-95 disabled:opacity-50"
+              style={{
+                background: "linear-gradient(135deg, #9488f5, #7c6cf0)",
+                boxShadow: "0 4px 28px rgba(124,108,240,0.5)",
+              }}
+              onMouseEnter={(e) =>
+                (e.currentTarget.style.boxShadow =
+                  "0 6px 36px rgba(124,108,240,0.65)")
+              }
+              onMouseLeave={(e) =>
+                (e.currentTarget.style.boxShadow =
+                  "0 4px 28px rgba(124,108,240,0.5)")
+              }
             >
               {isLoading ? (
-                <svg className="h-6 w-6 animate-spin" viewBox="0 0 24 24" fill="none">
+                <svg className="h-7 w-7 animate-spin" viewBox="0 0 24 24" fill="none">
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                 </svg>
               ) : isPlaying ? (
-                <svg className="h-6 w-6" viewBox="0 0 24 24" fill="currentColor">
-                  <rect x="6" y="4" width="4" height="16" rx="1" />
-                  <rect x="14" y="4" width="4" height="16" rx="1" />
+                <svg className="h-7 w-7" viewBox="0 0 24 24" fill="currentColor">
+                  <rect x="6" y="4" width="4" height="16" rx="1.5" />
+                  <rect x="14" y="4" width="4" height="16" rx="1.5" />
                 </svg>
               ) : (
-                <svg className="h-6 w-6 ml-0.5" viewBox="0 0 24 24" fill="currentColor">
+                <svg className="h-7 w-7 ml-0.5" viewBox="0 0 24 24" fill="currentColor">
                   <path d="M8 5v14l11-7z" />
                 </svg>
               )}
@@ -509,20 +484,24 @@ export default function Player({
                 <path d="M16 6h2v12h-2V6zM6 18l8.5-6L6 6v12z" />
               </svg>
             </IconButton>
-
-            <IconButton onClick={stop} label="Stop">
-              <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
-                <rect x="6" y="6" width="12" height="12" rx="1" />
-              </svg>
-            </IconButton>
           </div>
 
-          <div className="mx-auto mt-3 flex max-w-sm items-center gap-2 md:mt-4">
+          {/* Volume */}
+          <div className="mx-auto mt-4 flex max-w-xs items-center gap-3">
             <button
               type="button"
               onClick={toggleMute}
               aria-label={isMuted ? "Unmute" : "Mute"}
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[var(--muted)] hover:bg-[var(--surface-hover)] hover:text-[var(--foreground)]"
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition-colors"
+              style={{ color: "rgba(255,255,255,0.4)" }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = "rgba(255,255,255,0.08)";
+                e.currentTarget.style.color = "white";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = "";
+                e.currentTarget.style.color = "rgba(255,255,255,0.4)";
+              }}
             >
               {isMuted || volume === 0 ? (
                 <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
@@ -534,6 +513,7 @@ export default function Player({
                 </svg>
               )}
             </button>
+
             <input
               type="range"
               min={0}
@@ -545,19 +525,159 @@ export default function Player({
                 setVolume(next);
                 if (next > 0) setIsMuted(false);
               }}
-              className="h-1.5 flex-1 cursor-pointer accent-[var(--accent)]"
+              className="h-1 flex-1 cursor-pointer accent-[#7c6cf0]"
               aria-label="Volume"
             />
-            <span className="w-8 shrink-0 text-right text-xs tabular-nums text-[var(--muted)]">
+
+            <span
+              className="w-7 shrink-0 text-right text-[11px] tabular-nums"
+              style={{ color: "rgba(255,255,255,0.3)" }}
+            >
               {volumePercent}
             </span>
           </div>
 
-          <p className="mt-3 hidden text-center text-[10px] text-[var(--muted)] md:block">
-            Space · play/pause  ← → · skip  M · mute  S · stop
+          <p
+            className="mt-3 hidden text-center text-[10px] md:block"
+            style={{ color: "rgba(255,255,255,0.2)" }}
+          >
+            Space · play/pause &nbsp;← → · skip &nbsp;M · mute
           </p>
         </div>
+
+        {/* Station carousel — collapsible */}
+        {canTune && (
+          <div style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}>
+            {/* Toggle row */}
+            <button
+              type="button"
+              onClick={() => {
+                const next = !stationsOpen;
+                setStationsOpen(next);
+                localStorage.setItem(STATIONS_OPEN_KEY, String(next));
+              }}
+              className="flex w-full items-center gap-2 px-4 py-2.5 transition-colors md:px-6"
+              onMouseEnter={(e) =>
+                (e.currentTarget.style.background = "rgba(255,255,255,0.03)")
+              }
+              onMouseLeave={(e) =>
+                (e.currentTarget.style.background = "")
+              }
+            >
+              <span
+                className="text-xs font-medium"
+                style={{ color: "rgba(255,255,255,0.4)" }}
+              >
+                More from {station.country}
+              </span>
+              <span
+                className="text-[11px] tabular-nums"
+                style={{ color: "rgba(255,255,255,0.25)" }}
+              >
+                {currentIndex + 1} / {stationList.length}
+              </span>
+              <span className="ml-auto flex-shrink-0">
+                <svg
+                  className="h-3.5 w-3.5 transition-transform duration-200"
+                  style={{
+                    color: "rgba(255,255,255,0.3)",
+                    transform: stationsOpen ? "rotate(180deg)" : "rotate(0deg)",
+                  }}
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                >
+                  <path d="M6 9l6 6 6-6" />
+                </svg>
+              </span>
+            </button>
+
+            {/* Carousel — hidden when collapsed */}
+            {stationsOpen && (
+              <div
+                className="flex gap-2 overflow-x-auto overscroll-x-contain px-4 pb-4 pt-1 [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:px-6"
+              >
+                {stationList.map((s, i) => {
+                  const active = i === currentIndex;
+                  return (
+                    <button
+                      key={s.stationuuid}
+                      type="button"
+                      onClick={() => onSelectStationAt(i)}
+                      aria-current={active ? "true" : undefined}
+                      className="flex w-[4.5rem] shrink-0 flex-col items-center gap-1.5 rounded-2xl p-1.5 transition-all"
+                      style={
+                        active
+                          ? {
+                              background: "rgba(124,108,240,0.18)",
+                              border: "1px solid rgba(124,108,240,0.4)",
+                            }
+                          : { border: "1px solid transparent" }
+                      }
+                      onMouseEnter={(e) => {
+                        if (!active)
+                          e.currentTarget.style.background =
+                            "rgba(255,255,255,0.06)";
+                      }}
+                      onMouseLeave={(e) => {
+                        if (!active) e.currentTarget.style.background = "";
+                      }}
+                    >
+                      <StationFavicon src={s.favicon} alt={s.name} size="sm" />
+                      <span
+                        className={`line-clamp-2 w-full text-center text-[9px] leading-tight ${
+                          active ? "font-semibold text-white" : ""
+                        }`}
+                        style={active ? {} : { color: "rgba(255,255,255,0.4)" }}
+                      >
+                        {s.name}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </main>
+  );
+}
+
+function IconButton({
+  onClick,
+  disabled,
+  label,
+  children,
+}: {
+  onClick: () => void;
+  disabled?: boolean;
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      aria-label={label}
+      title={label}
+      className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-white transition-all active:scale-95 disabled:cursor-not-allowed disabled:opacity-30"
+      style={{ color: "rgba(255,255,255,0.7)" }}
+      onMouseEnter={(e) => {
+        if (!disabled) {
+          e.currentTarget.style.background = "rgba(255,255,255,0.08)";
+          e.currentTarget.style.color = "white";
+        }
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.background = "";
+        e.currentTarget.style.color = "rgba(255,255,255,0.7)";
+      }}
+    >
+      {children}
+    </button>
   );
 }
