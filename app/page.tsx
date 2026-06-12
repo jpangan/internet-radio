@@ -3,19 +3,38 @@
 import { useCallback, useEffect, useState } from "react";
 import Player from "@/components/Player";
 import CountryModal from "@/components/CountryModal";
-import type { Country, Station } from "@/lib/types";
+import FavoritesModal, { HeartIcon } from "@/components/FavoritesModal";
+import type { Country, Favorite, Station } from "@/lib/types";
 import { dedupeStations } from "@/lib/utils";
 import FlagIcon from "@/components/FlagIcon";
 
 const COUNTRY_KEY = "ir-country";
 const STATION_KEY = "ir-station";
+const FAVORITES_KEY = "ir-favorites";
+
+function readStoredFavorites(): Favorite[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = localStorage.getItem(FAVORITES_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
 
 export default function Home() {
   const [currentStation, setCurrentStation] = useState<Station | null>(null);
   const [stationList, setStationList] = useState<Station[]>([]);
   const [selectedCountry, setSelectedCountry] = useState<Country | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isFavoritesOpen, setIsFavoritesOpen] = useState(false);
+  const [favorites, setFavorites] = useState<Favorite[]>([]);
   const [isPlaying, setIsPlaying] = useState(false);
+
+  // Load favorites after mount to avoid SSR/client hydration mismatch
+  useEffect(() => {
+    setFavorites(readStoredFavorites());
+  }, []);
 
   // Restore last session from localStorage
   useEffect(() => {
@@ -74,6 +93,49 @@ export default function Home() {
 
   const handleClearStation = useCallback(() => {
     setCurrentStation(null);
+  }, []);
+
+  const isFavorited = favorites.some(
+    (f) => f.station.stationuuid === currentStation?.stationuuid
+  );
+
+  const handleToggleFavorite = useCallback(() => {
+    if (!currentStation || !selectedCountry) return;
+    const already = favorites.some(
+      (f) => f.station.stationuuid === currentStation.stationuuid
+    );
+    const next = already
+      ? favorites.filter((f) => f.station.stationuuid !== currentStation.stationuuid)
+      : [...favorites, { station: currentStation, country: selectedCountry }];
+    setFavorites(next);
+    localStorage.setItem(FAVORITES_KEY, JSON.stringify(next));
+  }, [currentStation, selectedCountry, favorites]);
+
+  const handleRemoveFavorite = useCallback((stationuuid: string) => {
+    const next = favorites.filter((f) => f.station.stationuuid !== stationuuid);
+    setFavorites(next);
+    localStorage.setItem(FAVORITES_KEY, JSON.stringify(next));
+  }, [favorites]);
+
+  const handleSelectFavorite = useCallback(async (fav: Favorite) => {
+    setSelectedCountry(fav.country);
+    setCurrentStation(fav.station);
+    localStorage.setItem(COUNTRY_KEY, JSON.stringify(fav.country));
+    localStorage.setItem(STATION_KEY, JSON.stringify(fav.station));
+    setIsFavoritesOpen(false);
+
+    try {
+      const res = await fetch(
+        `/api/stations/${encodeURIComponent(fav.country.name)}`
+      );
+      const data: Station[] = await res.json();
+      const stations = dedupeStations(data);
+      setStationList(stations);
+      const found = stations.find(
+        (s) => s.stationuuid === fav.station.stationuuid
+      );
+      if (found) setCurrentStation(found);
+    } catch {}
   }, []);
 
   const currentIndex =
@@ -214,6 +276,39 @@ export default function Home() {
               <path d="M12 2a14.5 14.5 0 0 0 0 20M12 2a14.5 14.5 0 0 1 0 20M2 12h20" />
             </svg>
           </button>
+
+          {/* Favorites button */}
+          <button
+            type="button"
+            onClick={() => setIsFavoritesOpen(true)}
+            aria-label="Favorites"
+            className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition-all"
+            style={{
+              background: favorites.length > 0 ? "rgba(251,113,133,0.12)" : "rgba(255,255,255,0.06)",
+              border: favorites.length > 0 ? "1px solid rgba(251,113,133,0.3)" : "1px solid rgba(255,255,255,0.1)",
+              color: favorites.length > 0 ? "#fb7185" : "rgba(255,255,255,0.55)",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = "rgba(251,113,133,0.18)";
+              e.currentTarget.style.borderColor = "rgba(251,113,133,0.4)";
+              e.currentTarget.style.color = "#fb7185";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = favorites.length > 0 ? "rgba(251,113,133,0.12)" : "rgba(255,255,255,0.06)";
+              e.currentTarget.style.borderColor = favorites.length > 0 ? "rgba(251,113,133,0.3)" : "rgba(255,255,255,0.1)";
+              e.currentTarget.style.color = favorites.length > 0 ? "#fb7185" : "rgba(255,255,255,0.55)";
+            }}
+          >
+            <HeartIcon filled={favorites.length > 0} className="h-4 w-4" />
+            {favorites.length > 0 && (
+              <span
+                className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full text-[9px] font-bold text-white"
+                style={{ background: "#fb7185" }}
+              >
+                {favorites.length > 9 ? "9+" : favorites.length}
+              </span>
+            )}
+          </button>
         </div>
       </header>
 
@@ -228,6 +323,8 @@ export default function Home() {
         onClear={handleClearStation}
         onOpenCountrySelector={() => setIsModalOpen(true)}
         onPlayingChange={setIsPlaying}
+        isFavorited={isFavorited}
+        onToggleFavorite={handleToggleFavorite}
         className="flex min-h-0 flex-1"
       />
 
@@ -240,7 +337,16 @@ export default function Home() {
         initialCountry={selectedCountry}
       />
 
-      {/* Keep isPlaying in state for potential future badge use */}
+      {/* Favorites modal */}
+      <FavoritesModal
+        isOpen={isFavoritesOpen}
+        onClose={() => setIsFavoritesOpen(false)}
+        favorites={favorites}
+        onSelectFavorite={handleSelectFavorite}
+        onRemoveFavorite={handleRemoveFavorite}
+        currentStationuuid={currentStation?.stationuuid}
+      />
+
       <span className="sr-only">{isPlaying ? "Playing" : "Paused"}</span>
     </div>
   );

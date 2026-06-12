@@ -32,6 +32,9 @@ export default function CountryModal({
   const [loadingStations, setLoadingStations] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
+  const [vvHeight, setVvHeight] = useState<number | null>(null);
+  const [vvOffsetTop, setVvOffsetTop] = useState(0);
 
   useEffect(() => {
     if (countries.length > 0) return;
@@ -86,6 +89,11 @@ export default function CountryModal({
     };
   }, [isOpen]);
 
+  // Reset scroll to top whenever the filter changes
+  useEffect(() => {
+    listRef.current?.scrollTo({ top: 0 });
+  }, [filter]);
+
   const filteredCountries = useMemo(() => {
     const q = filter.trim().toLowerCase();
     if (!q) return countries;
@@ -114,12 +122,40 @@ export default function CountryModal({
     setError(null);
   };
 
+  // Track visual viewport so the sheet shrinks above the keyboard on iOS
+  useEffect(() => {
+    if (!isOpen) return;
+    const vv = window.visualViewport;
+    if (!vv) return;
+    const update = () => {
+      setVvHeight(vv.height);
+      setVvOffsetTop(vv.offsetTop);
+    };
+    update();
+    vv.addEventListener("resize", update);
+    vv.addEventListener("scroll", update);
+    return () => {
+      vv.removeEventListener("resize", update);
+      vv.removeEventListener("scroll", update);
+    };
+  }, [isOpen]);
+
   if (!isOpen) return null;
+
+  const overlayStyle: React.CSSProperties = vvHeight
+    ? { position: "fixed", top: vvOffsetTop, left: 0, right: 0, height: vvHeight, zIndex: 50, display: "flex", alignItems: "flex-end", justifyContent: "center", background: "rgba(0,0,0,0.65)", backdropFilter: "blur(6px)", WebkitBackdropFilter: "blur(6px)" }
+    : {};
+
+  const sheetMaxHeight = vvHeight ? vvHeight * 0.94 : undefined;
 
   return (
     <div
-      className="modal-overlay fixed inset-0 z-50 flex items-end sm:items-center sm:justify-center sm:p-4"
-      style={{ background: "rgba(0,0,0,0.65)", backdropFilter: "blur(6px)", WebkitBackdropFilter: "blur(6px)" }}
+      className={vvHeight ? "" : "modal-overlay fixed inset-0 z-50 flex items-end sm:items-center sm:justify-center sm:p-4"}
+      style={
+        vvHeight
+          ? overlayStyle
+          : { background: "rgba(0,0,0,0.65)", backdropFilter: "blur(6px)", WebkitBackdropFilter: "blur(6px)" }
+      }
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
@@ -131,7 +167,7 @@ export default function CountryModal({
           backdropFilter: "blur(40px) saturate(200%)",
           WebkitBackdropFilter: "blur(40px) saturate(200%)",
           border: "1px solid rgba(255,255,255,0.1)",
-          maxHeight: "92dvh",
+          maxHeight: sheetMaxHeight ?? "92dvh",
           boxShadow: "0 -8px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.06)",
         }}
       >
@@ -257,6 +293,7 @@ export default function CountryModal({
 
         {/* List */}
         <div
+          ref={listRef}
           className="flex-1 overflow-y-auto overscroll-contain px-2 [-webkit-overflow-scrolling:touch]"
           style={{ paddingBottom: "max(1.25rem, var(--safe-bottom))" }}
         >

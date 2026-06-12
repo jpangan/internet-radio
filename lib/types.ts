@@ -4,6 +4,11 @@ export interface Country {
   iso_3166_1: string;
 }
 
+export interface Favorite {
+  station: Station;
+  country: Country;
+}
+
 export interface Station {
   stationuuid: string;
   name: string;

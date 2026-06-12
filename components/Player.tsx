@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { Station } from "@/lib/types";
 import { formatBitrate, parseTags } from "@/lib/utils";
 import StationFavicon from "./StationFavicon";
+import { HeartIcon } from "./FavoritesModal";
 
 interface PlayerProps {
   station: Station | null;
@@ -15,6 +16,8 @@ interface PlayerProps {
   onClear: () => void;
   onOpenCountrySelector: () => void;
   onPlayingChange: (playing: boolean) => void;
+  isFavorited: boolean;
+  onToggleFavorite: () => void;
   className?: string;
 }
 
@@ -50,6 +53,8 @@ export default function Player({
   onClear,
   onOpenCountrySelector,
   onPlayingChange,
+  isFavorited,
+  onToggleFavorite,
   className = "",
 }: PlayerProps) {
   const canTune = stationList.length > 1 && currentIndex >= 0;
@@ -464,7 +469,12 @@ export default function Player({
       >
         {/* Playback controls */}
         <div className="px-4 pt-5 pb-4 md:px-6">
-          <div className="mx-auto flex max-w-md items-center justify-center gap-1 sm:gap-2">
+          <div className="mx-auto flex max-w-md items-center">
+            {/* Left spacer — mirrors heart width so controls stay centered */}
+            <div className="w-11" />
+
+            {/* Play controls — always centered */}
+            <div className="flex flex-1 items-center justify-center gap-1 sm:gap-2">
             <IconButton onClick={onPrevious} disabled={!canTune} label="Previous">
               <svg className="h-5 w-5" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M6 6h2v12H6V6zm3.5 6 8.5 6V6l-8.5 6z" />
@@ -512,6 +522,31 @@ export default function Player({
                 <path d="M16 6h2v12h-2V6zM6 18l8.5-6L6 6v12z" />
               </svg>
             </IconButton>
+            </div>{/* end centered controls */}
+
+            {/* Heart — right anchor */}
+            <div className="w-11 flex items-center justify-end">
+              <button
+                type="button"
+                onClick={onToggleFavorite}
+                aria-label={isFavorited ? "Remove from favorites" : "Add to favorites"}
+                className="flex h-10 w-10 items-center justify-center rounded-full transition-all active:scale-95"
+                style={{ color: isFavorited ? "#fb7185" : "rgba(255,255,255,0.35)" }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = isFavorited ? "rgba(251,113,133,0.12)" : "rgba(255,255,255,0.07)";
+                  e.currentTarget.style.color = "#fb7185";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = "";
+                  e.currentTarget.style.color = isFavorited ? "#fb7185" : "rgba(255,255,255,0.35)";
+                }}
+              >
+                <HeartIcon
+                  filled={isFavorited}
+                  className={`h-5 w-5 transition-transform ${isFavorited ? "scale-110" : ""}`}
+                />
+              </button>
+            </div>
           </div>
 
           {/* Volume */}
