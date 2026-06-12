@@ -132,10 +132,15 @@ export default function Player({
           setIsPlaying(true);
           setError(null);
         }
-      } catch {
+      } catch (err) {
         if (!cancelled) {
           setIsPlaying(false);
-          setError("Playback failed. Try another station or retry.");
+          // Browser blocked autoplay (no user interaction yet) — sit in paused-ready state silently
+          const autoplayBlocked =
+            err instanceof DOMException && err.name === "NotAllowedError";
+          if (!autoplayBlocked) {
+            setError("Playback failed. Try another station or retry.");
+          }
         }
       } finally {
         if (!cancelled) setIsLoading(false);
