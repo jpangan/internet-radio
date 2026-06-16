@@ -459,7 +459,7 @@ export default function Player({
 
       {/* Controls panel */}
       <div
-        className="glass-panel relative shrink-0"
+        className="glass-panel player-controls relative shrink-0"
         style={{ borderTop: "1px solid rgba(255,255,255,0.07)" }}
       >
         {/* Playback controls */}
