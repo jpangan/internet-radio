@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { Country, Station } from "@/lib/types";
 import { formatBitrate, parseTags } from "@/lib/utils";
 import { useCountries, useInfiniteStations } from "@/lib/queries";
+import { trackCountryBrowsed, trackStationSearched, trackLoadMore } from "@/lib/analytics";
 import StationFavicon from "./StationFavicon";
 import FlagIcon from "./FlagIcon";
 
@@ -76,7 +77,10 @@ export default function CountryModal({
   // Debounce station search
   useEffect(() => {
     if (view !== "stations") return;
-    const t = setTimeout(() => setDebouncedSearch(filter), 400);
+    const t = setTimeout(() => {
+      setDebouncedSearch(filter);
+      if (filter.trim()) trackStationSearched(filter.trim());
+    }, 400);
     return () => clearTimeout(t);
   }, [filter, view]);
 
@@ -106,6 +110,7 @@ export default function CountryModal({
     setView("stations");
     setFilter("");
     setDebouncedSearch("");
+    trackCountryBrowsed(country);
   };
 
   const handleBack = () => {
@@ -446,7 +451,7 @@ export default function CountryModal({
               {hasNextPage && (
                 <button
                   type="button"
-                  onClick={() => fetchNextPage()}
+                  onClick={() => { fetchNextPage(); if (browsingCountry) trackLoadMore(browsingCountry, stationsData?.pages.length ?? 1); }}
                   disabled={isFetchingNextPage}
                   className="mt-2 w-full rounded-xl py-2.5 text-sm font-medium transition-colors disabled:opacity-50"
                   style={{

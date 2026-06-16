@@ -5,6 +5,7 @@ import type { Station } from "@/lib/types";
 import { formatBitrate, parseTags } from "@/lib/utils";
 import StationFavicon from "./StationFavicon";
 import { HeartIcon } from "./FavoritesModal";
+import { trackStationPlayed, trackStationPaused, trackStreamError, trackError } from "@/lib/analytics";
 
 interface PlayerProps {
   station: Station | null;
@@ -74,11 +75,13 @@ export default function Player({
       await audio.play();
       setIsPlaying(true);
       setError(null);
-    } catch {
+    } catch (err) {
       setIsPlaying(false);
       setError("Playback failed. Try another station or retry.");
+      const message = err instanceof Error ? err.message : "Playback failed";
+      if (station) trackError(message, { type: "playback_error", station_name: station.name, station_uuid: station.stationuuid });
     }
-  }, []);
+  }, [station]);
 
   const pause = useCallback(() => {
     audioRef.current?.pause();
@@ -86,9 +89,14 @@ export default function Player({
   }, []);
 
   const togglePlay = useCallback(() => {
-    if (isPlaying) pause();
-    else play();
-  }, [isPlaying, play, pause]);
+    if (isPlaying) {
+      pause();
+      if (station) trackStationPaused(station);
+    } else {
+      play();
+      if (station) trackStationPlayed(station);
+    }
+  }, [isPlaying, play, pause, station]);
 
   const toggleMute = useCallback(() => setIsMuted((m) => !m), []);
 
@@ -165,6 +173,7 @@ export default function Player({
       setIsPlaying(false);
       setIsLoading(false);
       setError("Stream unavailable. Try another station or retry.");
+      if (station) trackStreamError(station);
     };
 
     audio.addEventListener("playing", onPlaying);

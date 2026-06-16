@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import QueryProvider from "@/components/QueryProvider";
+import PostHogProvider from "@/components/PostHogProvider";
 import "./globals.css";
 
 const inter = Inter({
@@ -45,7 +46,9 @@ export default function RootLayout({
         <link rel="mask-icon" href="/favicon.svg" color="#7c6cf0" />
       </head>
       <body className={`${inter.className} antialiased`}>
-        <QueryProvider>{children}</QueryProvider>
+        <PostHogProvider>
+          <QueryProvider>{children}</QueryProvider>
+        </PostHogProvider>
       </body>
     </html>
   );
