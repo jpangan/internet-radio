@@ -6,6 +6,13 @@ import CountryModal from "@/components/CountryModal";
 import FavoritesModal, { HeartIcon } from "@/components/FavoritesModal";
 import type { Country, Favorite, Station } from "@/lib/types";
 import { useInfiniteStations, useQueryClient, queryKeys, fetchCountriesApi } from "@/lib/queries";
+import {
+  trackStationSelected,
+  trackStationNavigated,
+  trackFavoriteAdded,
+  trackFavoriteRemoved,
+  trackStationShared,
+} from "@/lib/analytics";
 import FlagIcon from "@/components/FlagIcon";
 
 const COUNTRY_KEY = "ir-country";
@@ -118,6 +125,7 @@ export default function Home() {
       localStorage.setItem(COUNTRY_KEY, JSON.stringify(country));
       localStorage.setItem(STATION_KEY, JSON.stringify(station));
       setIsModalOpen(false);
+      trackStationSelected(station, country);
     },
     []
   );
@@ -145,6 +153,8 @@ export default function Home() {
       : currentStation.name;
     setFavoritesMessage(already ? `Removed "${label}" from favorites` : `Added "${label}" to favorites`);
     setTimeout(() => setFavoritesMessage(null), 2000);
+    if (already) trackFavoriteRemoved(currentStation, selectedCountry);
+    else trackFavoriteAdded(currentStation, selectedCountry);
   }, [currentStation, selectedCountry, favorites]);
 
   const handleRemoveFavorite = useCallback((stationuuid: string) => {
@@ -165,6 +175,7 @@ export default function Home() {
 
   const handleShare = useCallback(() => {
     if (!currentStation || !selectedCountry) return;
+    trackStationShared(currentStation, selectedCountry);
     const url = new URL(window.location.href);
     url.search = "";
     url.searchParams.set("country", selectedCountry.iso_3166_1 || selectedCountry.name);
@@ -211,11 +222,9 @@ export default function Home() {
           s.name === currentStation.name
       );
       if (index === -1) return;
-      setCurrentStation(
-        stationList[
-          (index + direction + stationList.length) % stationList.length
-        ]
-      );
+      const next = stationList[(index + direction + stationList.length) % stationList.length];
+      setCurrentStation(next);
+      trackStationNavigated(next, direction === 1 ? "next" : "prev");
     },
     [currentStation, stationList]
   );

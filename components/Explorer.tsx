@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { Country, Station } from "@/lib/types";
 import { countryCodeToFlag, formatBitrate, parseTags } from "@/lib/utils";
 import { useCountries, useInfiniteStations } from "@/lib/queries";
+import { trackCountryBrowsed, trackStationSearched, trackLoadMore } from "@/lib/analytics";
 import StationFavicon from "./StationFavicon";
 
 interface ExplorerProps {
@@ -62,7 +63,10 @@ export default function Explorer({
   // Debounce station search
   useEffect(() => {
     if (!selectedCountry) return;
-    const t = setTimeout(() => setDebouncedSearch(filter), 400);
+    const t = setTimeout(() => {
+      setDebouncedSearch(filter);
+      if (filter.trim()) trackStationSearched(filter.trim());
+    }, 400);
     return () => clearTimeout(t);
   }, [filter, selectedCountry]);
 
@@ -168,7 +172,7 @@ export default function Explorer({
                 <li key={country.name}>
                   <button
                     type="button"
-                    onClick={() => setSelectedCountry(country)}
+                    onClick={() => { setSelectedCountry(country); trackCountryBrowsed(country); }}
                     className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-colors hover:bg-[var(--surface-hover)] active:bg-[var(--surface)]"
                   >
                     <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[var(--surface)] text-lg">
@@ -243,7 +247,7 @@ export default function Explorer({
             {hasNextPage && (
               <button
                 type="button"
-                onClick={() => fetchNextPage()}
+                onClick={() => { fetchNextPage(); if (selectedCountry) trackLoadMore(selectedCountry, data?.pages.length ?? 1); }}
                 disabled={isFetchingNextPage}
                 className="mt-2 w-full rounded-xl border border-[var(--border)] py-2.5 text-sm text-[var(--accent)] transition-colors hover:bg-[var(--surface-hover)] disabled:opacity-50"
               >
