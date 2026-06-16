@@ -674,6 +674,29 @@ export default function Player({
           >
             Space · play/pause &nbsp;← → · skip &nbsp;M · mute
           </p>
+
+          <div className="mt-3 flex justify-center">
+            <a
+              href="https://ko-fi.com/jpngn"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-medium transition-all"
+              style={{ color: "rgba(255,255,255,0.25)", background: "transparent" }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.color = "rgba(255,255,255,0.7)";
+                e.currentTarget.style.background = "rgba(255,255,255,0.06)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.color = "rgba(255,255,255,0.25)";
+                e.currentTarget.style.background = "transparent";
+              }}
+            >
+              <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M2 3h16c1.1 0 2 .9 2 2v1c0 3.31-2.69 6-6 6h-1c-.93 1.2-2.35 2-3.97 2H8l-.5 4H11v2H4l1.5-12H2V3zm6.5 8H11c1.38 0 2.5-1.12 2.5-2.5V5H5.5L4.55 11H8.5zm7.5 0c1.66 0 3-1.34 3-3V5h-3.5v3.5c0 .83-.2 1.61-.55 2.31.17.12.36.19.55.19z" />
+              </svg>
+              Support on Ko-fi
+            </a>
+          </div>
         </div>
 
       </div>

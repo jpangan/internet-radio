@@ -5,7 +5,7 @@ import Player from "@/components/Player";
 import CountryModal from "@/components/CountryModal";
 import FavoritesModal, { HeartIcon } from "@/components/FavoritesModal";
 import type { Country, Favorite, Station } from "@/lib/types";
-import { dedupeStations } from "@/lib/utils";
+import { useStations, useQueryClient, queryKeys, fetchCountriesApi } from "@/lib/queries";
 import FlagIcon from "@/components/FlagIcon";
 
 const COUNTRY_KEY = "ir-country";
@@ -23,14 +23,28 @@ function readStoredFavorites(): Favorite[] {
 }
 
 export default function Home() {
+  const queryClient = useQueryClient();
   const [currentStation, setCurrentStation] = useState<Station | null>(null);
-  const [stationList, setStationList] = useState<Station[]>([]);
+  const [pendingStationUuid, setPendingStationUuid] = useState<string | null>(null);
   const [selectedCountry, setSelectedCountry] = useState<Country | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isFavoritesOpen, setIsFavoritesOpen] = useState(false);
   const [favorites, setFavorites] = useState<Favorite[]>([]);
   const [isPlaying, setIsPlaying] = useState(false);
   const [shareCopied, setShareCopied] = useState(false);
+
+  const stationIdentifier = selectedCountry
+    ? (selectedCountry.iso_3166_1 || selectedCountry.name)
+    : null;
+  const { data: stationList = [], status: stationsStatus } = useStations(stationIdentifier);
+
+  // Once the station list loads, find and apply any pending station
+  useEffect(() => {
+    if (!pendingStationUuid || stationsStatus !== "success") return;
+    const station = stationList.find((s) => s.stationuuid === pendingStationUuid);
+    setPendingStationUuid(null);
+    if (station) setCurrentStation(station);
+  }, [stationList, pendingStationUuid, stationsStatus]);
 
   // Load favorites after mount to avoid SSR/client hydration mismatch
   useEffect(() => {
@@ -47,35 +61,22 @@ export default function Home() {
     // Clear params from URL immediately so back/forward history is clean
     history.replaceState(null, "", window.location.pathname);
 
-    fetch(`/api/stations/${encodeURIComponent(countryParam)}`)
-      .then((res) => {
-        if (!res.ok) throw new Error();
-        return res.json();
-      })
-      .then(async (data: Station[]) => {
-        const stations = dedupeStations(data);
-        const station = stations.find((s) => s.stationuuid === stationParam);
-        if (!station) return; // Not found — stay on empty state
-
-        // Try to enrich with proper Country object (for flag icon)
-        let country: Country = { name: countryParam, stationcount: stations.length, iso_3166_1: "" };
-        try {
-          const cr = await fetch("/api/countries");
-          const countries: Country[] = await cr.json();
-          const found = countries.find(
-            (c) => c.name.toLowerCase() === countryParam.toLowerCase()
-          );
-          if (found) country = found;
-        } catch {}
-
+    queryClient
+      .fetchQuery({ queryKey: queryKeys.countries, queryFn: fetchCountriesApi })
+      .then((countries: Country[]) => {
+        // Match by ISO code (new share URLs) or name (legacy share URLs)
+        const found = countries.find(
+          (c) =>
+            c.iso_3166_1 === countryParam ||
+            c.name.toLowerCase() === countryParam.toLowerCase()
+        );
+        const country = found ?? { name: countryParam, stationcount: 0, iso_3166_1: "" };
         setSelectedCountry(country);
-        setCurrentStation(station);
-        setStationList(stations);
         localStorage.setItem(COUNTRY_KEY, JSON.stringify(country));
-        localStorage.setItem(STATION_KEY, JSON.stringify(station));
+        setPendingStationUuid(stationParam);
       })
       .catch(() => {}); // Failed fetch — stay on empty state
-  }, []);
+  }, [queryClient]);
 
   // Restore last session from localStorage
   useEffect(() => {
@@ -93,25 +94,9 @@ export default function Home() {
 
       if (savedStationStr) {
         const savedStation: Station = JSON.parse(savedStationStr);
-        // Set station immediately so the player can start loading
-        setCurrentStation(savedStation);
+        setCurrentStation(savedStation); // set immediately so the player can start loading
+        setPendingStationUuid(savedStation.stationuuid); // refresh from fresh list once loaded
       }
-
-      // Fetch the station list in the background for navigation
-      fetch(`/api/stations/${encodeURIComponent(savedCountry.name)}`)
-        .then((res) => res.json())
-        .then((data: Station[]) => {
-          const stations = dedupeStations(data);
-          setStationList(stations);
-          if (savedStationStr) {
-            const savedStation: Station = JSON.parse(savedStationStr);
-            const found = stations.find(
-              (s) => s.stationuuid === savedStation.stationuuid
-            );
-            if (found) setCurrentStation(found);
-          }
-        })
-        .catch(() => {});
     } catch {
       // Ignore malformed saved data
     }
@@ -125,9 +110,8 @@ export default function Home() {
   }, [currentStation]);
 
   const handleSelectStation = useCallback(
-    (station: Station, list: Station[], country: Country) => {
+    (station: Station, _list: Station[], country: Country) => {
       setCurrentStation(station);
-      setStationList(list);
       setSelectedCountry(country);
       localStorage.setItem(COUNTRY_KEY, JSON.stringify(country));
       localStorage.setItem(STATION_KEY, JSON.stringify(station));
@@ -162,32 +146,21 @@ export default function Home() {
     localStorage.setItem(FAVORITES_KEY, JSON.stringify(next));
   }, [favorites]);
 
-  const handleSelectFavorite = useCallback(async (fav: Favorite) => {
+  const handleSelectFavorite = useCallback((fav: Favorite) => {
     setSelectedCountry(fav.country);
     setCurrentStation(fav.station);
     localStorage.setItem(COUNTRY_KEY, JSON.stringify(fav.country));
     localStorage.setItem(STATION_KEY, JSON.stringify(fav.station));
     setIsFavoritesOpen(false);
-
-    try {
-      const res = await fetch(
-        `/api/stations/${encodeURIComponent(fav.country.name)}`
-      );
-      const data: Station[] = await res.json();
-      const stations = dedupeStations(data);
-      setStationList(stations);
-      const found = stations.find(
-        (s) => s.stationuuid === fav.station.stationuuid
-      );
-      if (found) setCurrentStation(found);
-    } catch {}
+    // React Query fetches the station list; refresh currentStation once loaded
+    setPendingStationUuid(fav.station.stationuuid);
   }, []);
 
   const handleShare = useCallback(() => {
     if (!currentStation || !selectedCountry) return;
     const url = new URL(window.location.href);
     url.search = "";
-    url.searchParams.set("country", selectedCountry.name);
+    url.searchParams.set("country", selectedCountry.iso_3166_1 || selectedCountry.name);
     url.searchParams.set("station", currentStation.stationuuid);
     const shareUrl = url.toString();
 

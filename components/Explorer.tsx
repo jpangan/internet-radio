@@ -2,12 +2,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 import type { Country, Station } from "@/lib/types";
-import {
-  countryCodeToFlag,
-  dedupeStations,
-  formatBitrate,
-  parseTags,
-} from "@/lib/utils";
+import { countryCodeToFlag, formatBitrate, parseTags } from "@/lib/utils";
+import { useCountries, useStations } from "@/lib/queries";
 import StationFavicon from "./StationFavicon";
 
 interface ExplorerProps {
@@ -21,48 +17,29 @@ export default function Explorer({
   onSelectStation,
   className = "",
 }: ExplorerProps) {
-  const [countries, setCountries] = useState<Country[]>([]);
-  const [stations, setStations] = useState<Station[]>([]);
   const [selectedCountry, setSelectedCountry] = useState<Country | null>(null);
   const [filter, setFilter] = useState("");
-  const [loadingCountries, setLoadingCountries] = useState(true);
-  const [loadingStations, setLoadingStations] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    fetch("/api/countries")
-      .then((res) => {
-        if (!res.ok) throw new Error("Failed to load countries");
-        return res.json();
-      })
-      .then((data: Country[]) => {
-        setCountries(data);
-        setLoadingCountries(false);
-      })
-      .catch(() => {
-        setError("Could not load countries");
-        setLoadingCountries(false);
-      });
-  }, []);
+  const stationIdentifier = selectedCountry
+    ? (selectedCountry.iso_3166_1 || selectedCountry.name)
+    : null;
 
-  useEffect(() => {
-    if (!selectedCountry) return;
-    setLoadingStations(true);
-    setStations([]);
-    fetch(`/api/stations/${encodeURIComponent(selectedCountry.name)}`)
-      .then((res) => {
-        if (!res.ok) throw new Error("Failed to load stations");
-        return res.json();
-      })
-      .then((data: Station[]) => {
-        setStations(dedupeStations(data));
-        setLoadingStations(false);
-      })
-      .catch(() => {
-        setError("Could not load stations");
-        setLoadingStations(false);
-      });
-  }, [selectedCountry]);
+  const {
+    data: countries = [],
+    isPending: loadingCountries,
+    error: countriesError,
+  } = useCountries();
+
+  const {
+    data: stations = [],
+    isFetching: loadingStations,
+    error: stationsError,
+  } = useStations(stationIdentifier);
+
+  const error =
+    selectedCountry
+      ? (stationsError?.message ?? null)
+      : (countriesError?.message ?? null);
 
   const filteredCountries = useMemo(() => {
     const q = filter.trim().toLowerCase();
@@ -79,10 +56,13 @@ export default function Explorer({
     );
   }, [stations, filter]);
 
+  // Reset filter when switching between countries and stations views
+  useEffect(() => {
+    setFilter("");
+  }, [selectedCountry]);
+
   const handleBack = () => {
     setSelectedCountry(null);
-    setStations([]);
-    setError(null);
   };
 
   const isCurrentStation = (station: Station) =>
@@ -185,11 +165,7 @@ export default function Explorer({
                 <li key={country.name}>
                   <button
                     type="button"
-                    onClick={() => {
-                      setFilter("");
-                      setSelectedCountry(country);
-                      setError(null);
-                    }}
+                    onClick={() => setSelectedCountry(country)}
                     className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-colors hover:bg-[var(--surface-hover)] active:bg-[var(--surface)]"
                   >
                     <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[var(--surface)] text-lg">

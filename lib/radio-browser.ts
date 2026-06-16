@@ -29,12 +29,13 @@ export async function fetchCountries() {
   return res.json();
 }
 
-export async function fetchStationsByCountry(countryName: string) {
+export async function fetchStationsByCountry(isoCode: string, fallbackName?: string) {
   const base = await getBaseUrl();
-  const res = await fetch(
-    `${base}/stations/bycountry/${encodeURIComponent(countryName)}?order=votes&reverse=true&hidebroken=true&limit=50`,
-    { next: { revalidate: 300 } }
-  );
+  // bycountrycode endpoint returns 404 on some servers; search?countrycode= is reliable
+  const url = isoCode
+    ? `${base}/stations/search?countrycode=${encodeURIComponent(isoCode)}&order=votes&reverse=true&hidebroken=true&limit=300`
+    : `${base}/stations/bycountry/${encodeURIComponent(fallbackName!)}?order=votes&reverse=true&hidebroken=true&limit=300`;
+  const res = await fetch(url, { next: { revalidate: 300 } });
   if (!res.ok) throw new Error("Failed to fetch stations");
   return res.json();
 }

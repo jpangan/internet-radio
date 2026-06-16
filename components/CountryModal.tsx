@@ -2,7 +2,8 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { Country, Station } from "@/lib/types";
-import { dedupeStations, formatBitrate, parseTags } from "@/lib/utils";
+import { formatBitrate, parseTags } from "@/lib/utils";
+import { useCountries, useStations } from "@/lib/queries";
 import StationFavicon from "./StationFavicon";
 import FlagIcon from "./FlagIcon";
 
@@ -25,34 +26,36 @@ export default function CountryModal({
 }: CountryModalProps) {
   const [view, setView] = useState<ModalView>("countries");
   const [browsingCountry, setBrowsingCountry] = useState<Country | null>(null);
-  const [countries, setCountries] = useState<Country[]>([]);
-  const [stations, setStations] = useState<Station[]>([]);
   const [filter, setFilter] = useState("");
-  const [loadingCountries, setLoadingCountries] = useState(false);
-  const [loadingStations, setLoadingStations] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
   const [vvHeight, setVvHeight] = useState<number | null>(null);
   const [vvOffsetTop, setVvOffsetTop] = useState(0);
 
-  useEffect(() => {
-    if (countries.length > 0) return;
-    setLoadingCountries(true);
-    fetch("/api/countries")
-      .then((res) => {
-        if (!res.ok) throw new Error();
-        return res.json();
-      })
-      .then((data: Country[]) => setCountries(data))
-      .catch(() => setError("Could not load countries"))
-      .finally(() => setLoadingCountries(false));
-  }, [countries.length]);
+  const stationIdentifier = browsingCountry
+    ? (browsingCountry.iso_3166_1 || browsingCountry.name)
+    : null;
+
+  const {
+    data: countries = [],
+    isPending: loadingCountries,
+    error: countriesError,
+  } = useCountries();
+
+  const {
+    data: stations = [],
+    isFetching: loadingStations,
+    error: stationsError,
+  } = useStations(stationIdentifier);
+
+  const error =
+    view === "countries"
+      ? (countriesError?.message ?? null)
+      : (stationsError?.message ?? null);
 
   useEffect(() => {
     if (!isOpen) return;
     setFilter("");
-    setError(null);
     if (initialCountry) {
       setBrowsingCountry(initialCountry);
       setView("stations");
@@ -62,21 +65,6 @@ export default function CountryModal({
     }
     setTimeout(() => inputRef.current?.focus(), 80);
   }, [isOpen, initialCountry]);
-
-  useEffect(() => {
-    if (!browsingCountry) return;
-    setLoadingStations(true);
-    setStations([]);
-    setError(null);
-    fetch(`/api/stations/${encodeURIComponent(browsingCountry.name)}`)
-      .then((res) => {
-        if (!res.ok) throw new Error();
-        return res.json();
-      })
-      .then((data: Station[]) => setStations(dedupeStations(data)))
-      .catch(() => setError("Could not load stations"))
-      .finally(() => setLoadingStations(false));
-  }, [browsingCountry]);
 
   useEffect(() => {
     if (isOpen) {
@@ -119,7 +107,6 @@ export default function CountryModal({
     setView("countries");
     setBrowsingCountry(null);
     setFilter("");
-    setError(null);
   };
 
   // Track visual viewport so the sheet shrinks above the keyboard on iOS
