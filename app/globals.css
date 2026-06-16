@@ -109,6 +109,16 @@ body {
   100% { transform: scaleY(1); }
 }
 
+@keyframes connecting-dot {
+  0%, 60%, 100% { transform: scaleY(0.4); opacity: 0.3; }
+  30% { transform: scaleY(1); opacity: 1; }
+}
+
+.connecting-dot {
+  animation: connecting-dot 1.2s ease-in-out infinite;
+  transform-origin: center;
+}
+
 /* Modal animations */
 @keyframes overlay-in {
   from { opacity: 0; }

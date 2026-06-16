@@ -388,10 +388,19 @@ export default function Player({
           )}
           {isLoading && !error && (
             <span
-              className="text-xs font-medium"
-              style={{ color: "rgba(255,255,255,0.35)" }}
+              className="flex items-center gap-2 rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-wider"
+              style={{
+                background: "rgba(124,108,240,0.12)",
+                color: "#9488f5",
+                border: "1px solid rgba(124,108,240,0.2)",
+              }}
             >
-              Connecting…
+              <span className="flex items-center gap-[3px]">
+                <span className="connecting-dot h-1.5 w-1.5 rounded-full bg-[#9488f5]" style={{ animationDelay: "0s" }} />
+                <span className="connecting-dot h-1.5 w-1.5 rounded-full bg-[#9488f5]" style={{ animationDelay: "0.15s" }} />
+                <span className="connecting-dot h-1.5 w-1.5 rounded-full bg-[#9488f5]" style={{ animationDelay: "0.3s" }} />
+              </span>
+              Connecting
             </span>
           )}
         </div>
