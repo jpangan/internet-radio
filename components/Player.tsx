@@ -19,6 +19,7 @@ interface PlayerProps {
   isFavorited: boolean;
   onToggleFavorite: () => void;
   onShare?: () => void;
+  shareCopied?: boolean;
   className?: string;
 }
 
@@ -51,6 +52,7 @@ export default function Player({
   isFavorited,
   onToggleFavorite,
   onShare,
+  shareCopied = false,
   className = "",
 }: PlayerProps) {
   const canTune = stationList.length > 1 && currentIndex >= 0;
@@ -462,6 +464,19 @@ export default function Player({
         className="glass-panel player-controls relative shrink-0"
         style={{ borderTop: "1px solid rgba(255,255,255,0.07)" }}
       >
+        {shareCopied && (
+          <div
+            className="pointer-events-none absolute left-1/2 z-50 -translate-x-1/2 -translate-y-full rounded-full px-4 py-2 text-xs font-semibold text-white"
+            style={{
+              top: -16,
+              background: "rgba(30,28,50,0.92)",
+              border: "1px solid rgba(124,108,240,0.35)",
+              boxShadow: "0 4px 24px rgba(0,0,0,0.4)",
+            }}
+          >
+            Link copied!
+          </div>
+        )}
         {/* Playback controls */}
         <div className="px-4 pt-5 pb-4 md:px-6">
           <div className="mx-auto flex max-w-md items-center">
