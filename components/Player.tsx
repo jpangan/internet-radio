@@ -20,6 +20,7 @@ interface PlayerProps {
   onToggleFavorite: () => void;
   onShare?: () => void;
   shareCopied?: boolean;
+  favoritesMessage?: string | null;
   className?: string;
 }
 
@@ -53,6 +54,7 @@ export default function Player({
   onToggleFavorite,
   onShare,
   shareCopied = false,
+  favoritesMessage = null,
   className = "",
 }: PlayerProps) {
   const canTune = stationList.length > 1 && currentIndex >= 0;
@@ -484,6 +486,19 @@ export default function Player({
             }}
           >
             Link copied!
+          </div>
+        )}
+        {favoritesMessage && (
+          <div
+            className="pointer-events-none absolute left-1/2 z-50 -translate-x-1/2 -translate-y-full rounded-full px-4 py-2 text-xs font-semibold text-white"
+            style={{
+              top: -16,
+              background: "rgba(40,20,28,0.92)",
+              border: "1px solid rgba(251,113,133,0.35)",
+              boxShadow: "0 4px 24px rgba(0,0,0,0.4)",
+            }}
+          >
+            {favoritesMessage}
           </div>
         )}
         {/* Playback controls */}
