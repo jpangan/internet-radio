@@ -30,6 +30,7 @@ export default function Home() {
   const [isFavoritesOpen, setIsFavoritesOpen] = useState(false);
   const [favorites, setFavorites] = useState<Favorite[]>([]);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [shareCopied, setShareCopied] = useState(false);
 
   // Load favorites after mount to avoid SSR/client hydration mismatch
   useEffect(() => {
@@ -182,7 +183,7 @@ export default function Home() {
     } catch {}
   }, []);
 
-  const handleShare = useCallback(async () => {
+  const handleShare = useCallback(() => {
     if (!currentStation || !selectedCountry) return;
     const url = new URL(window.location.href);
     url.search = "";
@@ -190,13 +191,26 @@ export default function Home() {
     url.searchParams.set("station", currentStation.stationuuid);
     const shareUrl = url.toString();
 
-    try {
-      await navigator.share({
+    const copyFallback = () => {
+      navigator.clipboard?.writeText(shareUrl).then(() => {
+        setShareCopied(true);
+        setTimeout(() => setShareCopied(false), 2000);
+      }).catch(() => {});
+    };
+
+    if (typeof navigator.share === "function") {
+      navigator.share({
         title: `${currentStation.name} — Internet Radio`,
         text: `Listen to ${currentStation.name} from ${selectedCountry.name}`,
         url: shareUrl,
+      }).catch((err: unknown) => {
+        if (err instanceof DOMException && err.name === "AbortError") return;
+        copyFallback();
       });
-    } catch {}
+      return;
+    }
+
+    copyFallback();
   }, [currentStation, selectedCountry]);
 
   const currentIndex =
@@ -410,6 +424,19 @@ export default function Home() {
       />
 
       <span className="sr-only">{isPlaying ? "Playing" : "Paused"}</span>
+
+      {shareCopied && (
+        <div
+          className="pointer-events-none fixed bottom-24 left-1/2 -translate-x-1/2 z-50 rounded-full px-4 py-2 text-xs font-semibold text-white"
+          style={{
+            background: "rgba(30,28,50,0.92)",
+            border: "1px solid rgba(124,108,240,0.35)",
+            boxShadow: "0 4px 24px rgba(0,0,0,0.4)",
+          }}
+        >
+          Link copied!
+        </div>
+      )}
     </div>
   );
 }

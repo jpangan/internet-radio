@@ -440,11 +440,6 @@ export default function Player({
           </div>
         )}
 
-        {/* Visualizer */}
-        <div className="mt-5 mb-1">
-          <Visualizer active={isPlaying && !isLoading && !error} />
-        </div>
-
         {/* Error */}
         {error && (
           <div
