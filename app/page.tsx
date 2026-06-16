@@ -36,8 +36,52 @@ export default function Home() {
     setFavorites(readStoredFavorites());
   }, []);
 
+  // Resolve shared URL params on mount — takes priority over localStorage
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const countryParam = params.get("country");
+    const stationParam = params.get("station");
+    if (!countryParam || !stationParam) return;
+
+    // Clear params from URL immediately so back/forward history is clean
+    history.replaceState(null, "", window.location.pathname);
+
+    fetch(`/api/stations/${encodeURIComponent(countryParam)}`)
+      .then((res) => {
+        if (!res.ok) throw new Error();
+        return res.json();
+      })
+      .then(async (data: Station[]) => {
+        const stations = dedupeStations(data);
+        const station = stations.find((s) => s.stationuuid === stationParam);
+        if (!station) return; // Not found — stay on empty state
+
+        // Try to enrich with proper Country object (for flag icon)
+        let country: Country = { name: countryParam, stationcount: stations.length, iso_3166_1: "" };
+        try {
+          const cr = await fetch("/api/countries");
+          const countries: Country[] = await cr.json();
+          const found = countries.find(
+            (c) => c.name.toLowerCase() === countryParam.toLowerCase()
+          );
+          if (found) country = found;
+        } catch {}
+
+        setSelectedCountry(country);
+        setCurrentStation(station);
+        setStationList(stations);
+        localStorage.setItem(COUNTRY_KEY, JSON.stringify(country));
+        localStorage.setItem(STATION_KEY, JSON.stringify(station));
+      })
+      .catch(() => {}); // Failed fetch — stay on empty state
+  }, []);
+
   // Restore last session from localStorage
   useEffect(() => {
+    // Skip if a shared URL is being handled (that effect takes priority)
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("country") && params.get("station")) return;
+
     const savedCountryStr = localStorage.getItem(COUNTRY_KEY);
     const savedStationStr = localStorage.getItem(STATION_KEY);
     if (!savedCountryStr) return;
@@ -137,6 +181,23 @@ export default function Home() {
       if (found) setCurrentStation(found);
     } catch {}
   }, []);
+
+  const handleShare = useCallback(async () => {
+    if (!currentStation || !selectedCountry) return;
+    const url = new URL(window.location.href);
+    url.search = "";
+    url.searchParams.set("country", selectedCountry.name);
+    url.searchParams.set("station", currentStation.stationuuid);
+    const shareUrl = url.toString();
+
+    try {
+      await navigator.share({
+        title: `${currentStation.name} — Internet Radio`,
+        text: `Listen to ${currentStation.name} from ${selectedCountry.name}`,
+        url: shareUrl,
+      });
+    } catch {}
+  }, [currentStation, selectedCountry]);
 
   const currentIndex =
     currentStation && stationList.length > 0
@@ -325,6 +386,7 @@ export default function Home() {
         onPlayingChange={setIsPlaying}
         isFavorited={isFavorited}
         onToggleFavorite={handleToggleFavorite}
+        onShare={currentStation ? handleShare : undefined}
         className="flex min-h-0 flex-1"
       />
 

@@ -82,6 +82,33 @@ body {
     0 24px 80px rgba(0, 0, 0, 0.5);
 }
 
+@keyframes artwork-pulse {
+  0%, 100% {
+    box-shadow:
+      0 0 0 1px var(--accent-ring),
+      0 0 38px rgba(124, 108, 240, 0.28),
+      0 8px 60px var(--accent-glow),
+      0 24px 80px rgba(0, 0, 0, 0.5);
+  }
+  50% {
+    box-shadow:
+      0 0 0 1px var(--accent-ring),
+      0 0 90px rgba(124, 108, 240, 0.65),
+      0 0 140px rgba(148, 136, 245, 0.2),
+      0 8px 60px var(--accent-glow),
+      0 24px 80px rgba(0, 0, 0, 0.5);
+  }
+}
+
+.artwork-pulse {
+  animation: artwork-pulse 1.7s ease-in-out infinite;
+}
+
+@keyframes viz-bar {
+  0%   { transform: scaleY(0.1); }
+  100% { transform: scaleY(1); }
+}
+
 /* Modal animations */
 @keyframes overlay-in {
   from { opacity: 0; }
