@@ -2,12 +2,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 import type { Country, Station } from "@/lib/types";
-import {
-  countryCodeToFlag,
-  dedupeStations,
-  formatBitrate,
-  parseTags,
-} from "@/lib/utils";
+import { countryCodeToFlag, formatBitrate, parseTags } from "@/lib/utils";
+import { useCountries, useInfiniteStations } from "@/lib/queries";
 import StationFavicon from "./StationFavicon";
 
 interface ExplorerProps {
@@ -21,48 +17,35 @@ export default function Explorer({
   onSelectStation,
   className = "",
 }: ExplorerProps) {
-  const [countries, setCountries] = useState<Country[]>([]);
-  const [stations, setStations] = useState<Station[]>([]);
   const [selectedCountry, setSelectedCountry] = useState<Country | null>(null);
   const [filter, setFilter] = useState("");
-  const [loadingCountries, setLoadingCountries] = useState(true);
-  const [loadingStations, setLoadingStations] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [debouncedSearch, setDebouncedSearch] = useState("");
 
-  useEffect(() => {
-    fetch("/api/countries")
-      .then((res) => {
-        if (!res.ok) throw new Error("Failed to load countries");
-        return res.json();
-      })
-      .then((data: Country[]) => {
-        setCountries(data);
-        setLoadingCountries(false);
-      })
-      .catch(() => {
-        setError("Could not load countries");
-        setLoadingCountries(false);
-      });
-  }, []);
+  const stationIdentifier = selectedCountry
+    ? (selectedCountry.iso_3166_1 || selectedCountry.name)
+    : null;
 
-  useEffect(() => {
-    if (!selectedCountry) return;
-    setLoadingStations(true);
-    setStations([]);
-    fetch(`/api/stations/${encodeURIComponent(selectedCountry.name)}`)
-      .then((res) => {
-        if (!res.ok) throw new Error("Failed to load stations");
-        return res.json();
-      })
-      .then((data: Station[]) => {
-        setStations(dedupeStations(data));
-        setLoadingStations(false);
-      })
-      .catch(() => {
-        setError("Could not load stations");
-        setLoadingStations(false);
-      });
-  }, [selectedCountry]);
+  const {
+    data: countries = [],
+    isPending: loadingCountries,
+    error: countriesError,
+  } = useCountries();
+
+  const {
+    data,
+    isPending: stationsPending,
+    isFetchingNextPage,
+    fetchNextPage,
+    hasNextPage,
+    error: stationsError,
+  } = useInfiniteStations(stationIdentifier, debouncedSearch);
+
+  const allStations = data?.pages.flat() ?? [];
+
+  const error =
+    selectedCountry
+      ? (stationsError?.message ?? null)
+      : (countriesError?.message ?? null);
 
   const filteredCountries = useMemo(() => {
     const q = filter.trim().toLowerCase();
@@ -70,20 +53,20 @@ export default function Explorer({
     return countries.filter((c) => c.name.toLowerCase().includes(q));
   }, [countries, filter]);
 
-  const filteredStations = useMemo(() => {
-    const q = filter.trim().toLowerCase();
-    if (!q) return stations;
-    return stations.filter(
-      (s) =>
-        s.name.toLowerCase().includes(q) || s.tags.toLowerCase().includes(q),
-    );
-  }, [stations, filter]);
+  // Reset filter when switching views
+  useEffect(() => {
+    setFilter("");
+    setDebouncedSearch("");
+  }, [selectedCountry]);
 
-  const handleBack = () => {
-    setSelectedCountry(null);
-    setStations([]);
-    setError(null);
-  };
+  // Debounce station search
+  useEffect(() => {
+    if (!selectedCountry) return;
+    const t = setTimeout(() => setDebouncedSearch(filter), 400);
+    return () => clearTimeout(t);
+  }, [filter, selectedCountry]);
+
+  const handleBack = () => setSelectedCountry(null);
 
   const isCurrentStation = (station: Station) =>
     currentStation?.url_resolved === station.url_resolved &&
@@ -185,11 +168,7 @@ export default function Explorer({
                 <li key={country.name}>
                   <button
                     type="button"
-                    onClick={() => {
-                      setFilter("");
-                      setSelectedCountry(country);
-                      setError(null);
-                    }}
+                    onClick={() => setSelectedCountry(country)}
                     className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-colors hover:bg-[var(--surface-hover)] active:bg-[var(--surface)]"
                   >
                     <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[var(--surface)] text-lg">
@@ -206,60 +185,72 @@ export default function Explorer({
               ))}
             </ul>
           )
-        ) : loadingStations ? (
+        ) : stationsPending ? (
           <LoadingRows label="Loading stations…" />
         ) : (
-          <ul className="space-y-1">
-            {filteredStations.map((station) => {
-              const active = isCurrentStation(station);
-              return (
-                <li key={station.stationuuid}>
-                  <button
-                    type="button"
-                    onClick={() => onSelectStation(station, stations)}
-                    className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-all ${
-                      active
-                        ? "bg-[color-mix(in_srgb,var(--accent)_14%,var(--surface))] ring-1 ring-[color-mix(in_srgb,var(--accent)_40%,transparent)]"
-                        : "hover:bg-[var(--surface-hover)] active:bg-[var(--surface)]"
-                    }`}
-                  >
-                    <StationFavicon
-                      src={station.favicon}
-                      alt={station.name}
-                      size="sm"
-                    />
-                    <div className="min-w-0 flex-1">
-                      <p
-                        className={`truncate text-sm ${active ? "font-semibold" : "font-medium"}`}
-                      >
-                        {station.name}
-                      </p>
-                      <div className="mt-1 flex flex-wrap items-center gap-1">
-                        {parseTags(station.tags).map((tag) => (
-                          <span
-                            key={tag}
-                            className="rounded-md bg-[var(--background)] px-1.5 py-px text-[10px] text-[var(--muted)]"
-                          >
-                            {tag}
-                          </span>
-                        ))}
-                        {station.bitrate > 0 && (
-                          <span className="text-[10px] text-[var(--muted)]">
-                            {formatBitrate(station.bitrate)}
-                          </span>
-                        )}
+          <>
+            <ul className="space-y-1">
+              {allStations.map((station) => {
+                const active = isCurrentStation(station);
+                return (
+                  <li key={station.stationuuid}>
+                    <button
+                      type="button"
+                      onClick={() => onSelectStation(station, allStations)}
+                      className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-all ${
+                        active
+                          ? "bg-[color-mix(in_srgb,var(--accent)_14%,var(--surface))] ring-1 ring-[color-mix(in_srgb,var(--accent)_40%,transparent)]"
+                          : "hover:bg-[var(--surface-hover)] active:bg-[var(--surface)]"
+                      }`}
+                    >
+                      <StationFavicon
+                        src={station.favicon}
+                        alt={station.name}
+                        size="sm"
+                      />
+                      <div className="min-w-0 flex-1">
+                        <p
+                          className={`truncate text-sm ${active ? "font-semibold" : "font-medium"}`}
+                        >
+                          {station.name}
+                        </p>
+                        <div className="mt-1 flex flex-wrap items-center gap-1">
+                          {parseTags(station.tags).map((tag) => (
+                            <span
+                              key={tag}
+                              className="rounded-md bg-[var(--background)] px-1.5 py-px text-[10px] text-[var(--muted)]"
+                            >
+                              {tag}
+                            </span>
+                          ))}
+                          {station.bitrate > 0 && (
+                            <span className="text-[10px] text-[var(--muted)]">
+                              {formatBitrate(station.bitrate)}
+                            </span>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                    {active && (
-                      <span className="flex h-5 w-5 shrink-0 items-center justify-center">
-                        <span className="h-2 w-2 animate-pulse rounded-full bg-[var(--accent)]" />
-                      </span>
-                    )}
-                  </button>
-                </li>
-              );
-            })}
-          </ul>
+                      {active && (
+                        <span className="flex h-5 w-5 shrink-0 items-center justify-center">
+                          <span className="h-2 w-2 animate-pulse rounded-full bg-[var(--accent)]" />
+                        </span>
+                      )}
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+            {hasNextPage && (
+              <button
+                type="button"
+                onClick={() => fetchNextPage()}
+                disabled={isFetchingNextPage}
+                className="mt-2 w-full rounded-xl border border-[var(--border)] py-2.5 text-sm text-[var(--accent)] transition-colors hover:bg-[var(--surface-hover)] disabled:opacity-50"
+              >
+                {isFetchingNextPage ? "Loading…" : "Load more"}
+              </button>
+            )}
+          </>
         )}
       </div>
     </aside>

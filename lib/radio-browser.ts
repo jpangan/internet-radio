@@ -29,12 +29,29 @@ export async function fetchCountries() {
   return res.json();
 }
 
-export async function fetchStationsByCountry(countryName: string) {
+export async function fetchStationsByCountry(
+  isoCode: string,
+  fallbackName?: string,
+  offset = 0,
+  name = ""
+) {
   const base = await getBaseUrl();
-  const res = await fetch(
-    `${base}/stations/bycountry/${encodeURIComponent(countryName)}?order=votes&reverse=true&hidebroken=true&limit=50`,
-    { next: { revalidate: 300 } }
-  );
+  const params = new URLSearchParams({
+    order: "votes",
+    reverse: "true",
+    hidebroken: "true",
+    limit: "300",
+    offset: String(offset),
+  });
+  if (isoCode) {
+    params.set("countrycode", isoCode);
+  } else if (fallbackName) {
+    params.set("country", fallbackName);
+  }
+  if (name) params.set("name", name);
+  const res = await fetch(`${base}/stations/search?${params}`, {
+    next: { revalidate: 300 },
+  });
   if (!res.ok) throw new Error("Failed to fetch stations");
   return res.json();
 }
