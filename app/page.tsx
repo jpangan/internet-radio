@@ -32,6 +32,7 @@ export default function Home() {
   const [favorites, setFavorites] = useState<Favorite[]>([]);
   const [isPlaying, setIsPlaying] = useState(false);
   const [shareCopied, setShareCopied] = useState(false);
+  const [favoritesMessage, setFavoritesMessage] = useState<string | null>(null);
 
   const stationIdentifier = selectedCountry
     ? (selectedCountry.iso_3166_1 || selectedCountry.name)
@@ -139,6 +140,11 @@ export default function Home() {
       : [...favorites, { station: currentStation, country: selectedCountry }];
     setFavorites(next);
     localStorage.setItem(FAVORITES_KEY, JSON.stringify(next));
+    const label = currentStation.name.length > 30
+      ? currentStation.name.slice(0, 30).trimEnd() + "…"
+      : currentStation.name;
+    setFavoritesMessage(already ? `Removed "${label}" from favorites` : `Added "${label}" to favorites`);
+    setTimeout(() => setFavoritesMessage(null), 2000);
   }, [currentStation, selectedCountry, favorites]);
 
   const handleRemoveFavorite = useCallback((stationuuid: string) => {
@@ -376,6 +382,7 @@ export default function Home() {
         onToggleFavorite={handleToggleFavorite}
         onShare={currentStation ? handleShare : undefined}
         shareCopied={shareCopied}
+        favoritesMessage={favoritesMessage}
         className="flex min-h-0 flex-1"
       />
 
