@@ -141,3 +141,9 @@ body {
     min-height: 28px;
   }
 }
+
+@media (display-mode: standalone) {
+  .player-controls {
+    padding-bottom: max(1rem, env(safe-area-inset-bottom));
+  }
+}
