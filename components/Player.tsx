@@ -25,7 +25,6 @@ interface PlayerProps {
 
 const VOLUME_KEY = "internet-radio-volume";
 const MUTED_KEY = "internet-radio-muted";
-const STATIONS_OPEN_KEY = "internet-radio-stations-open";
 
 function readStoredVolume(): number {
   if (typeof window === "undefined") return 0.8;
@@ -37,11 +36,6 @@ function readStoredVolume(): number {
 function readStoredMuted(): boolean {
   if (typeof window === "undefined") return false;
   return localStorage.getItem(MUTED_KEY) === "true";
-}
-
-function readStoredStationsOpen(): boolean {
-  if (typeof window === "undefined") return false;
-  return localStorage.getItem(STATIONS_OPEN_KEY) === "true";
 }
 
 export default function Player({
@@ -68,7 +62,6 @@ export default function Player({
   const [isMuted, setIsMuted] = useState(readStoredMuted);
   const [error, setError] = useState<string | null>(null);
   const [reloadToken, setReloadToken] = useState(0);
-  const [stationsOpen, setStationsOpen] = useState(readStoredStationsOpen);
 
   const play = useCallback(async () => {
     const audio = audioRef.current;
@@ -579,6 +572,31 @@ export default function Player({
           <div className="mx-auto mt-4 flex max-w-xs items-center gap-3">
             <button
               type="button"
+              onClick={onOpenCountrySelector}
+              aria-label="Browse stations"
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition-colors"
+              style={{ color: "rgba(255,255,255,0.4)" }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = "rgba(255,255,255,0.08)";
+                e.currentTarget.style.color = "white";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = "";
+                e.currentTarget.style.color = "rgba(255,255,255,0.4)";
+              }}
+            >
+              <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                <line x1="8" y1="6" x2="21" y2="6" />
+                <line x1="8" y1="12" x2="21" y2="12" />
+                <line x1="8" y1="18" x2="21" y2="18" />
+                <line x1="3" y1="6" x2="3.01" y2="6" />
+                <line x1="3" y1="12" x2="3.01" y2="12" />
+                <line x1="3" y1="18" x2="3.01" y2="18" />
+              </svg>
+            </button>
+
+            <button
+              type="button"
               onClick={toggleMute}
               aria-label={isMuted ? "Unmute" : "Mute"}
               className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition-colors"
@@ -634,102 +652,6 @@ export default function Player({
           </p>
         </div>
 
-        {/* Station carousel — collapsible */}
-        {canTune && (
-          <div style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}>
-            {/* Toggle row */}
-            <button
-              type="button"
-              onClick={() => {
-                const next = !stationsOpen;
-                setStationsOpen(next);
-                localStorage.setItem(STATIONS_OPEN_KEY, String(next));
-              }}
-              className="flex w-full items-center gap-2 px-4 py-2.5 transition-colors md:px-6"
-              onMouseEnter={(e) =>
-                (e.currentTarget.style.background = "rgba(255,255,255,0.03)")
-              }
-              onMouseLeave={(e) =>
-                (e.currentTarget.style.background = "")
-              }
-            >
-              <span
-                className="text-xs font-medium"
-                style={{ color: "rgba(255,255,255,0.4)" }}
-              >
-                More from {station.country}
-              </span>
-              <span
-                className="text-[11px] tabular-nums"
-                style={{ color: "rgba(255,255,255,0.25)" }}
-              >
-                {currentIndex + 1} / {stationList.length}
-              </span>
-              <span className="ml-auto flex-shrink-0">
-                <svg
-                  className="h-3.5 w-3.5 transition-transform duration-200"
-                  style={{
-                    color: "rgba(255,255,255,0.3)",
-                    transform: stationsOpen ? "rotate(180deg)" : "rotate(0deg)",
-                  }}
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2.5"
-                  strokeLinecap="round"
-                >
-                  <path d="M6 9l6 6 6-6" />
-                </svg>
-              </span>
-            </button>
-
-            {/* Carousel — hidden when collapsed */}
-            {stationsOpen && (
-              <div
-                className="flex gap-2 overflow-x-auto overscroll-x-contain px-4 pb-4 pt-1 [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:px-6"
-              >
-                {stationList.map((s, i) => {
-                  const active = i === currentIndex;
-                  return (
-                    <button
-                      key={s.stationuuid}
-                      type="button"
-                      onClick={() => onSelectStationAt(i)}
-                      aria-current={active ? "true" : undefined}
-                      className="flex w-[4.5rem] shrink-0 flex-col items-center gap-1.5 rounded-2xl p-1.5 transition-all"
-                      style={
-                        active
-                          ? {
-                              background: "rgba(124,108,240,0.18)",
-                              border: "1px solid rgba(124,108,240,0.4)",
-                            }
-                          : { border: "1px solid transparent" }
-                      }
-                      onMouseEnter={(e) => {
-                        if (!active)
-                          e.currentTarget.style.background =
-                            "rgba(255,255,255,0.06)";
-                      }}
-                      onMouseLeave={(e) => {
-                        if (!active) e.currentTarget.style.background = "";
-                      }}
-                    >
-                      <StationFavicon src={s.favicon} alt={s.name} size="sm" />
-                      <span
-                        className={`line-clamp-2 w-full text-center text-[9px] leading-tight ${
-                          active ? "font-semibold text-white" : ""
-                        }`}
-                        style={active ? {} : { color: "rgba(255,255,255,0.4)" }}
-                      >
-                        {s.name}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        )}
       </div>
     </main>
   );
