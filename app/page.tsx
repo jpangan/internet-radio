@@ -5,7 +5,7 @@ import Player from "@/components/Player";
 import CountryModal from "@/components/CountryModal";
 import FavoritesModal, { HeartIcon } from "@/components/FavoritesModal";
 import type { Country, Favorite, Station } from "@/lib/types";
-import { useStations, useQueryClient, queryKeys, fetchCountriesApi } from "@/lib/queries";
+import { useInfiniteStations, useQueryClient, queryKeys, fetchCountriesApi } from "@/lib/queries";
 import FlagIcon from "@/components/FlagIcon";
 
 const COUNTRY_KEY = "ir-country";
@@ -36,7 +36,8 @@ export default function Home() {
   const stationIdentifier = selectedCountry
     ? (selectedCountry.iso_3166_1 || selectedCountry.name)
     : null;
-  const { data: stationList = [], status: stationsStatus } = useStations(stationIdentifier);
+  const { data: stationsData, status: stationsStatus } = useInfiniteStations(stationIdentifier, "");
+  const stationList = stationsData?.pages.flat() ?? [];
 
   // Once the station list loads, find and apply any pending station
   useEffect(() => {

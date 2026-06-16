@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { Country, Station } from "@/lib/types";
 import { formatBitrate, parseTags } from "@/lib/utils";
-import { useCountries, useStations } from "@/lib/queries";
+import { useCountries, useInfiniteStations } from "@/lib/queries";
 import StationFavicon from "./StationFavicon";
 import FlagIcon from "./FlagIcon";
 
@@ -27,6 +27,7 @@ export default function CountryModal({
   const [view, setView] = useState<ModalView>("countries");
   const [browsingCountry, setBrowsingCountry] = useState<Country | null>(null);
   const [filter, setFilter] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
   const [vvHeight, setVvHeight] = useState<number | null>(null);
@@ -43,10 +44,15 @@ export default function CountryModal({
   } = useCountries();
 
   const {
-    data: stations = [],
-    isFetching: loadingStations,
+    data: stationsData,
+    isPending: stationsPending,
+    isFetchingNextPage,
+    fetchNextPage,
+    hasNextPage,
     error: stationsError,
-  } = useStations(stationIdentifier);
+  } = useInfiniteStations(stationIdentifier, debouncedSearch);
+
+  const allStations = stationsData?.pages.flat() ?? [];
 
   const error =
     view === "countries"
@@ -56,6 +62,7 @@ export default function CountryModal({
   useEffect(() => {
     if (!isOpen) return;
     setFilter("");
+    setDebouncedSearch("");
     if (initialCountry) {
       setBrowsingCountry(initialCountry);
       setView("stations");
@@ -65,6 +72,13 @@ export default function CountryModal({
     }
     setTimeout(() => inputRef.current?.focus(), 80);
   }, [isOpen, initialCountry]);
+
+  // Debounce station search
+  useEffect(() => {
+    if (view !== "stations") return;
+    const t = setTimeout(() => setDebouncedSearch(filter), 400);
+    return () => clearTimeout(t);
+  }, [filter, view]);
 
   useEffect(() => {
     if (isOpen) {
@@ -77,10 +91,9 @@ export default function CountryModal({
     };
   }, [isOpen]);
 
-  // Reset scroll to top whenever the filter changes
   useEffect(() => {
     listRef.current?.scrollTo({ top: 0 });
-  }, [filter]);
+  }, [debouncedSearch]);
 
   const filteredCountries = useMemo(() => {
     const q = filter.trim().toLowerCase();
@@ -88,25 +101,18 @@ export default function CountryModal({
     return countries.filter((c) => c.name.toLowerCase().includes(q));
   }, [countries, filter]);
 
-  const filteredStations = useMemo(() => {
-    const q = filter.trim().toLowerCase();
-    if (!q) return stations;
-    return stations.filter(
-      (s) =>
-        s.name.toLowerCase().includes(q) || s.tags.toLowerCase().includes(q)
-    );
-  }, [stations, filter]);
-
   const handleSelectCountry = (country: Country) => {
     setBrowsingCountry(country);
     setView("stations");
     setFilter("");
+    setDebouncedSearch("");
   };
 
   const handleBack = () => {
     setView("countries");
     setBrowsingCountry(null);
     setFilter("");
+    setDebouncedSearch("");
   };
 
   // Track visual viewport so the sheet shrinks above the keyboard on iOS
@@ -210,8 +216,8 @@ export default function CountryModal({
             <p className="text-[11px] mt-px" style={{ color: "rgba(255,255,255,0.3)" }}>
               {view === "countries" && countries.length > 0
                 ? `${countries.length} countries available`
-                : view === "stations" && stations.length > 0
-                  ? `${stations.length} stations`
+                : view === "stations" && allStations.length > 0
+                  ? `${allStations.length} station${allStations.length !== 1 ? "s" : ""} loaded`
                   : " "}
             </p>
           </div>
@@ -351,91 +357,114 @@ export default function CountryModal({
                 ))}
               </ul>
             )
-          ) : loadingStations ? (
+          ) : stationsPending ? (
             <SkeletonRows count={6} />
           ) : (
-            <ul className="space-y-0.5">
-              {filteredStations.map((station) => {
-                const isActive =
-                  currentStation?.stationuuid === station.stationuuid;
-                return (
-                  <li key={station.stationuuid}>
-                    <button
-                      type="button"
-                      onClick={() =>
-                        browsingCountry &&
-                        onSelectStation(station, stations, browsingCountry)
-                      }
-                      className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-all"
-                      style={
-                        isActive
-                          ? {
-                              background: "rgba(124,108,240,0.14)",
-                              boxShadow: "inset 0 0 0 1px rgba(124,108,240,0.3)",
+            <>
+              <ul className="space-y-0.5">
+                {allStations.map((station) => {
+                  const isActive =
+                    currentStation?.stationuuid === station.stationuuid;
+                  return (
+                    <li key={station.stationuuid}>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          browsingCountry &&
+                          onSelectStation(station, allStations, browsingCountry)
+                        }
+                        className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-all"
+                        style={
+                          isActive
+                            ? {
+                                background: "rgba(124,108,240,0.14)",
+                                boxShadow: "inset 0 0 0 1px rgba(124,108,240,0.3)",
+                              }
+                            : {}
+                        }
+                        onMouseEnter={(e) => {
+                          if (!isActive)
+                            e.currentTarget.style.background =
+                              "rgba(255,255,255,0.06)";
+                        }}
+                        onMouseLeave={(e) => {
+                          if (!isActive) e.currentTarget.style.background = "";
+                        }}
+                      >
+                        <StationFavicon
+                          src={station.favicon}
+                          alt={station.name}
+                          size="sm"
+                        />
+                        <div className="flex-1 min-w-0">
+                          <p
+                            className={`truncate text-sm ${isActive ? "font-semibold text-white" : "font-medium"}`}
+                            style={
+                              isActive
+                                ? { color: "white" }
+                                : { color: "rgba(255,255,255,0.85)" }
                             }
-                          : {}
-                      }
-                      onMouseEnter={(e) => {
-                        if (!isActive)
-                          e.currentTarget.style.background =
-                            "rgba(255,255,255,0.06)";
-                      }}
-                      onMouseLeave={(e) => {
-                        if (!isActive) e.currentTarget.style.background = "";
-                      }}
-                    >
-                      <StationFavicon
-                        src={station.favicon}
-                        alt={station.name}
-                        size="sm"
-                      />
-                      <div className="flex-1 min-w-0">
-                        <p
-                          className={`truncate text-sm ${isActive ? "font-semibold text-white" : "font-medium"}`}
-                          style={
-                            isActive
-                              ? { color: "white" }
-                              : { color: "rgba(255,255,255,0.85)" }
-                          }
-                        >
-                          {station.name}
-                        </p>
-                        <div className="mt-0.5 flex flex-wrap items-center gap-1">
-                          {parseTags(station.tags).map((tag) => (
-                            <span
-                              key={tag}
-                              className="rounded-md px-1.5 py-px text-[10px]"
-                              style={{
-                                background: "rgba(255,255,255,0.06)",
-                                color: "rgba(255,255,255,0.35)",
-                              }}
-                            >
-                              {tag}
-                            </span>
-                          ))}
-                          {station.bitrate > 0 && (
-                            <span
-                              className="text-[10px]"
-                              style={{ color: "rgba(255,255,255,0.3)" }}
-                            >
-                              {formatBitrate(station.bitrate)}
-                            </span>
-                          )}
+                          >
+                            {station.name}
+                          </p>
+                          <div className="mt-0.5 flex flex-wrap items-center gap-1">
+                            {parseTags(station.tags).map((tag) => (
+                              <span
+                                key={tag}
+                                className="rounded-md px-1.5 py-px text-[10px]"
+                                style={{
+                                  background: "rgba(255,255,255,0.06)",
+                                  color: "rgba(255,255,255,0.35)",
+                                }}
+                              >
+                                {tag}
+                              </span>
+                            ))}
+                            {station.bitrate > 0 && (
+                              <span
+                                className="text-[10px]"
+                                style={{ color: "rgba(255,255,255,0.3)" }}
+                              >
+                                {formatBitrate(station.bitrate)}
+                              </span>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                      {isActive && (
-                        <span className="flex h-5 w-5 shrink-0 items-center justify-center">
-                          <span
-                            className="h-2 w-2 animate-pulse rounded-full"
-                            style={{ background: "#7c6cf0" }}
-                          />
-                        </span>
-                      )}
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
+                        {isActive && (
+                          <span className="flex h-5 w-5 shrink-0 items-center justify-center">
+                            <span
+                              className="h-2 w-2 animate-pulse rounded-full"
+                              style={{ background: "#7c6cf0" }}
+                            />
+                          </span>
+                        )}
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+              {hasNextPage && (
+                <button
+                  type="button"
+                  onClick={() => fetchNextPage()}
+                  disabled={isFetchingNextPage}
+                  className="mt-2 w-full rounded-xl py-2.5 text-sm font-medium transition-colors disabled:opacity-50"
+                  style={{
+                    background: "rgba(124,108,240,0.1)",
+                    border: "1px solid rgba(124,108,240,0.25)",
+                    color: "#9488f5",
+                  }}
+                  onMouseEnter={(e) =>
+                    (e.currentTarget.style.background = "rgba(124,108,240,0.18)")
+                  }
+                  onMouseLeave={(e) =>
+                    (e.currentTarget.style.background = "rgba(124,108,240,0.1)")
+                  }
+                >
+                  {isFetchingNextPage ? "Loading…" : "Load more"}
+                </button>
+              )}
+            </>
           )}
         </div>
       </div>
