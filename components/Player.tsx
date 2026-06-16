@@ -18,6 +18,7 @@ interface PlayerProps {
   onPlayingChange: (playing: boolean) => void;
   isFavorited: boolean;
   onToggleFavorite: () => void;
+  onShare?: () => void;
   className?: string;
 }
 
@@ -55,6 +56,7 @@ export default function Player({
   onPlayingChange,
   isFavorited,
   onToggleFavorite,
+  onShare,
   className = "",
 }: PlayerProps) {
   const canTune = stationList.length > 1 && currentIndex >= 0;
@@ -366,7 +368,7 @@ export default function Player({
       {/* Station info */}
       <div className="relative flex min-h-0 flex-1 flex-col items-center justify-center px-6 py-8 md:py-10">
         {/* Artwork */}
-        <div className="artwork-glow mb-6 rounded-3xl sm:mb-7">
+        <div className={`mb-6 rounded-3xl sm:mb-7 ${isPlaying ? "artwork-pulse" : "artwork-glow"}`}>
           <StationFavicon
             src={station.favicon}
             alt={station.name}
@@ -438,6 +440,11 @@ export default function Player({
           </div>
         )}
 
+        {/* Visualizer */}
+        <div className="mt-5 mb-1">
+          <Visualizer active={isPlaying && !isLoading && !error} />
+        </div>
+
         {/* Error */}
         {error && (
           <div
@@ -470,8 +477,32 @@ export default function Player({
         {/* Playback controls */}
         <div className="px-4 pt-5 pb-4 md:px-6">
           <div className="mx-auto flex max-w-md items-center">
-            {/* Left spacer — mirrors heart width so controls stay centered */}
-            <div className="w-11" />
+            {/* Share — left anchor, mirrors heart width so controls stay centered */}
+            <div className="w-11 flex items-center">
+              {onShare && (
+                <button
+                  type="button"
+                  onClick={onShare}
+                  aria-label="Share station"
+                  className="flex h-10 w-10 items-center justify-center rounded-full transition-all active:scale-95"
+                  style={{ color: "rgba(255,255,255,0.35)" }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = "rgba(255,255,255,0.07)";
+                    e.currentTarget.style.color = "rgba(255,255,255,0.8)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = "";
+                    e.currentTarget.style.color = "rgba(255,255,255,0.35)";
+                  }}
+                >
+                  <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
+                    <polyline points="16 6 12 2 8 6" />
+                    <line x1="12" y1="2" x2="12" y2="15" />
+                  </svg>
+                </button>
+              )}
+            </div>
 
             {/* Play controls — always centered */}
             <div className="flex flex-1 items-center justify-center gap-1 sm:gap-2">
@@ -706,6 +737,42 @@ export default function Player({
         )}
       </div>
     </main>
+  );
+}
+
+// Deterministic per-bar params so SSR and client match
+const BAR_COUNT = 30;
+const BARS = Array.from({ length: BAR_COUNT }, (_, i) => ({
+  duration: 0.4 + ((i * 7 + 3) % 9) * 0.09,
+  delay: -(((i * 11 + 1) % 13) * 0.08),
+  height: 12 + ((i * 13 + 5) % 22),
+}));
+
+function Visualizer({ active }: { active: boolean }) {
+  return (
+    <div
+      className="flex items-end justify-center"
+      style={{ gap: 3, height: 40 }}
+      aria-hidden
+    >
+      {BARS.map((b, i) => (
+        <div
+          key={i}
+          style={{
+            width: 3,
+            height: b.height,
+            borderRadius: 3,
+            background: "linear-gradient(to top, #7c6cf0, rgba(148,136,245,0.5))",
+            transformOrigin: "bottom",
+            transform: active ? undefined : "scaleY(0.1)",
+            transition: active ? undefined : "transform 0.5s ease",
+            animation: active
+              ? `viz-bar ${b.duration.toFixed(2)}s ${b.delay.toFixed(2)}s ease-in-out infinite alternate`
+              : "none",
+          }}
+        />
+      ))}
+    </div>
   );
 }
 
