@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import Player from "@/components/Player";
 import CountryModal from "@/components/CountryModal";
 import FavoritesModal, { HeartIcon } from "@/components/FavoritesModal";
+import ShareModal from "@/components/ShareModal";
 import type { Country, Favorite, Station } from "@/lib/types";
 import { useInfiniteStations, useQueryClient, queryKeys, fetchCountriesApi } from "@/lib/queries";
 import {
@@ -39,6 +40,8 @@ export default function Home() {
   const [favorites, setFavorites] = useState<Favorite[]>([]);
   const [isPlaying, setIsPlaying] = useState(false);
   const [shareCopied, setShareCopied] = useState(false);
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+  const [shareUrl, setShareUrl] = useState("");
   const [favoritesMessage, setFavoritesMessage] = useState<string | null>(null);
 
   const stationIdentifier = selectedCountry
@@ -180,29 +183,16 @@ export default function Home() {
     url.search = "";
     url.searchParams.set("country", selectedCountry.iso_3166_1 || selectedCountry.name);
     url.searchParams.set("station", currentStation.stationuuid);
-    const shareUrl = url.toString();
-
-    const copyFallback = () => {
-      navigator.clipboard?.writeText(shareUrl).then(() => {
-        setShareCopied(true);
-        setTimeout(() => setShareCopied(false), 2000);
-      }).catch(() => {});
-    };
-
-    if (typeof navigator.share === "function") {
-      navigator.share({
-        title: `${currentStation.name} — Internet Radio`,
-        text: `Listen to ${currentStation.name} from ${selectedCountry.name}`,
-        url: shareUrl,
-      }).catch((err: unknown) => {
-        if (err instanceof DOMException && err.name === "AbortError") return;
-        copyFallback();
-      });
-      return;
-    }
-
-    copyFallback();
+    setShareUrl(url.toString());
+    setIsShareModalOpen(true);
   }, [currentStation, selectedCountry]);
+
+  const handleShareCopy = useCallback(() => {
+    navigator.clipboard?.writeText(shareUrl).then(() => {
+      setShareCopied(true);
+      setTimeout(() => setShareCopied(false), 2000);
+    });
+  }, [shareUrl]);
 
   const currentIndex =
     currentStation && stationList.length > 0
@@ -393,6 +383,17 @@ export default function Home() {
         shareCopied={shareCopied}
         favoritesMessage={favoritesMessage}
         className="flex min-h-0 flex-1"
+      />
+
+      {/* Share modal */}
+      <ShareModal
+        isOpen={isShareModalOpen}
+        url={shareUrl}
+        onClose={() => setIsShareModalOpen(false)}
+        onCopyLink={handleShareCopy}
+        copied={shareCopied}
+        station={currentStation}
+        country={selectedCountry}
       />
 
       {/* Country / station selector modal */}

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useModalAnimation } from "@/lib/useModalAnimation";
 import type { Favorite } from "@/lib/types";
 import { formatBitrate } from "@/lib/utils";
 import StationFavicon from "./StationFavicon";
@@ -25,6 +26,7 @@ export default function FavoritesModal({
 }: FavoritesModalProps) {
   const [vvHeight, setVvHeight] = useState<number | null>(null);
   const [vvOffsetTop, setVvOffsetTop] = useState(0);
+  const { shouldRender, animatingOut } = useModalAnimation(isOpen);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -41,31 +43,41 @@ export default function FavoritesModal({
   }, [isOpen]);
 
   useEffect(() => {
-    if (isOpen) document.body.style.overflow = "hidden";
-    else document.body.style.overflow = "";
+    document.body.style.overflow = shouldRender ? "hidden" : "";
     return () => { document.body.style.overflow = ""; };
-  }, [isOpen]);
+  }, [shouldRender]);
 
-  if (!isOpen) return null;
+  if (!shouldRender) return null;
 
   const overlayStyle: React.CSSProperties = vvHeight
-    ? { position: "fixed", top: vvOffsetTop, left: 0, right: 0, height: vvHeight, zIndex: 50, display: "flex", alignItems: "flex-end", justifyContent: "center", background: "rgba(0,0,0,0.65)", backdropFilter: "blur(6px)", WebkitBackdropFilter: "blur(6px)" }
+    ? {
+        position: "fixed", top: vvOffsetTop, left: 0, right: 0, height: vvHeight,
+        zIndex: 50, display: "flex", alignItems: "flex-end", justifyContent: "center",
+        background: "rgba(0,0,0,0.65)", backdropFilter: "blur(6px)", WebkitBackdropFilter: "blur(6px)",
+        animation: animatingOut ? "overlay-out 0.24s ease forwards" : "overlay-in 0.22s ease forwards",
+      }
     : {};
 
   return (
     <div
-      className={vvHeight ? "" : "modal-overlay fixed inset-0 z-50 flex items-end sm:items-center sm:justify-center sm:p-4"}
+      className={
+        vvHeight
+          ? ""
+          : animatingOut
+            ? "modal-overlay-out fixed inset-0 z-50 flex items-end sm:items-center sm:justify-center sm:p-4"
+            : "modal-overlay fixed inset-0 z-50 flex items-end sm:items-center sm:justify-center sm:p-4"
+      }
       style={vvHeight ? overlayStyle : { background: "rgba(0,0,0,0.65)", backdropFilter: "blur(6px)", WebkitBackdropFilter: "blur(6px)" }}
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
       <div
-        className="modal-sheet w-full sm:max-w-md relative flex flex-col overflow-hidden rounded-t-3xl sm:rounded-2xl"
+        className={`${animatingOut ? "modal-sheet-down" : "modal-sheet"} w-full sm:max-w-md relative flex flex-col overflow-hidden rounded-t-3xl sm:rounded-2xl`}
         style={{
           background: "rgba(10, 10, 20, 0.97)",
           backdropFilter: "blur(40px) saturate(200%)",
           WebkitBackdropFilter: "blur(40px) saturate(200%)",
           border: "1px solid rgba(255,255,255,0.1)",
-          maxHeight: vvHeight ? vvHeight * 0.94 : "92dvh",
+          height: vvHeight ? vvHeight * 0.94 : "92dvh",
           boxShadow: "0 -8px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.06)",
         }}
       >

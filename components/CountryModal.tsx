@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useModalAnimation } from "@/lib/useModalAnimation";
 import type { Country, Station } from "@/lib/types";
 import { formatBitrate, parseTags } from "@/lib/utils";
 import { useCountries, useInfiniteStations } from "@/lib/queries";
@@ -33,6 +34,7 @@ export default function CountryModal({
   const listRef = useRef<HTMLDivElement>(null);
   const [vvHeight, setVvHeight] = useState<number | null>(null);
   const [vvOffsetTop, setVvOffsetTop] = useState(0);
+  const { shouldRender, animatingOut } = useModalAnimation(isOpen);
 
   const stationIdentifier = browsingCountry
     ? (browsingCountry.iso_3166_1 || browsingCountry.name)
@@ -85,15 +87,9 @@ export default function CountryModal({
   }, [filter, view]);
 
   useEffect(() => {
-    if (isOpen) {
-      document.body.style.overflow = "hidden";
-    } else {
-      document.body.style.overflow = "";
-    }
-    return () => {
-      document.body.style.overflow = "";
-    };
-  }, [isOpen]);
+    document.body.style.overflow = shouldRender ? "hidden" : "";
+    return () => { document.body.style.overflow = ""; };
+  }, [shouldRender]);
 
   useEffect(() => {
     listRef.current?.scrollTo({ top: 0 });
@@ -138,17 +134,28 @@ export default function CountryModal({
     };
   }, [isOpen]);
 
-  if (!isOpen) return null;
+  if (!shouldRender) return null;
 
   const overlayStyle: React.CSSProperties = vvHeight
-    ? { position: "fixed", top: vvOffsetTop, left: 0, right: 0, height: vvHeight, zIndex: 50, display: "flex", alignItems: "flex-end", justifyContent: "center", background: "rgba(0,0,0,0.65)", backdropFilter: "blur(6px)", WebkitBackdropFilter: "blur(6px)" }
+    ? {
+        position: "fixed", top: vvOffsetTop, left: 0, right: 0, height: vvHeight,
+        zIndex: 50, display: "flex", alignItems: "flex-end", justifyContent: "center",
+        background: "rgba(0,0,0,0.65)", backdropFilter: "blur(6px)", WebkitBackdropFilter: "blur(6px)",
+        animation: animatingOut ? "overlay-out 0.24s ease forwards" : "overlay-in 0.22s ease forwards",
+      }
     : {};
 
   const sheetMaxHeight = vvHeight ? vvHeight * 0.94 : undefined;
 
   return (
     <div
-      className={vvHeight ? "" : "modal-overlay fixed inset-0 z-50 flex items-end sm:items-center sm:justify-center sm:p-4"}
+      className={
+        vvHeight
+          ? ""
+          : animatingOut
+            ? "modal-overlay-out fixed inset-0 z-50 flex items-end sm:items-center sm:justify-center sm:p-4"
+            : "modal-overlay fixed inset-0 z-50 flex items-end sm:items-center sm:justify-center sm:p-4"
+      }
       style={
         vvHeight
           ? overlayStyle
@@ -159,13 +166,13 @@ export default function CountryModal({
       }}
     >
       <div
-        className="modal-sheet w-full sm:max-w-md relative flex flex-col overflow-hidden rounded-t-3xl sm:rounded-2xl"
+        className={`${animatingOut ? "modal-sheet-down" : "modal-sheet"} w-full sm:max-w-md relative flex flex-col overflow-hidden rounded-t-3xl sm:rounded-2xl`}
         style={{
           background: "rgba(10, 10, 20, 0.97)",
           backdropFilter: "blur(40px) saturate(200%)",
           WebkitBackdropFilter: "blur(40px) saturate(200%)",
           border: "1px solid rgba(255,255,255,0.1)",
-          maxHeight: sheetMaxHeight ?? "92dvh",
+          height: sheetMaxHeight ?? "92dvh",
           boxShadow: "0 -8px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.06)",
         }}
       >
