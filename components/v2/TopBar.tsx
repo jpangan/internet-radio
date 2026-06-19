@@ -8,9 +8,8 @@ interface TopBarProps {
 export default function TopBar({ title, onBack }: TopBarProps) {
   return (
     <div style={{
-      position: "sticky", top: 0, zIndex: 20, display: "flex", alignItems: "center", gap: 14,
+      display: "flex", alignItems: "center", gap: 14,
       padding: "16px 4px",
-      background: "var(--v-bg)",
     }}>
       {onBack && (
         <button
