@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import TopBar from "./TopBar";
 import Shelf from "./Shelf";
 import StationCard from "./StationCard";
@@ -97,16 +97,19 @@ function QuickTile({ station, playing, onPlay, onOpen }: {
   station: Station; playing: boolean;
   onPlay: (s: Station) => void; onOpen: (s: Station) => void;
 }) {
+  const [hovered, setHovered] = useState(false);
+  const showFab = playing || hovered;
+
   return (
     <div
       onClick={() => onOpen(station)}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
       style={{
         display: "flex", alignItems: "center", gap: 12, borderRadius: "var(--v-r-md)",
         overflow: "hidden", cursor: "pointer", height: 56,
-        background: "var(--v-elev-2)", transition: "background .18s",
+        background: hovered ? "var(--v-elev-3)" : "var(--v-elev-2)", transition: "background .18s",
       }}
-      onMouseEnter={(e) => (e.currentTarget.style.background = "var(--v-elev-3)")}
-      onMouseLeave={(e) => (e.currentTarget.style.background = "var(--v-elev-2)")}
     >
       <Cover station={station} size={56} radius="0" showInitials playing={playing} />
       <div style={{
@@ -120,6 +123,7 @@ function QuickTile({ station, playing, onPlay, onOpen }: {
           playing={playing}
           size={36}
           onClick={(e) => { e.stopPropagation(); onPlay(station); }}
+          style={{ opacity: showFab ? 1 : 0, transition: "opacity .15s" }}
         />
       </div>
     </div>

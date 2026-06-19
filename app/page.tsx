@@ -83,6 +83,22 @@ export default function App() {
     }).catch(() => {});
   }, [queryClient]);
 
+  // Resolve shared station UUID → fetch full station and open NowPlaying
+  useEffect(() => {
+    if (!pendingUuid) return;
+    setPendingUuid(null);
+    fetch(`/api/station/${encodeURIComponent(pendingUuid)}`)
+      .then((r) => r.ok ? r.json() : null)
+      .then((station) => {
+        if (!station) return;
+        setCurrentStation(station);
+        setPlayContext([station]);
+        setNpOpen(true);
+        localStorage.setItem(STATION_KEY, JSON.stringify(station));
+      })
+      .catch(() => {});
+  }, [pendingUuid]);
+
   // Restore session
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);

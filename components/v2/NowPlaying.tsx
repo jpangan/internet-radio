@@ -168,8 +168,13 @@ export default function NowPlaying({ station, open, onClose, onNext, onPrev, isF
                     <span key={i} style={{
                       flex: 1, height: isPlaying ? h + "px" : "4px", minWidth: 2, borderRadius: 2,
                       background: "rgba(255,255,255,0.55)", transformOrigin: "center",
-                      animation: isPlaying ? `v-eq ${0.6 + (i % 5) * 0.12}s ${(i % 7) * 0.07}s ease-in-out infinite` : "none",
-                      transition: isPlaying ? undefined : "height 0.4s ease",
+                      animationName: "v-eq",
+                      animationDuration: `${0.6 + (i % 5) * 0.12}s`,
+                      animationDelay: `${(i % 7) * 0.07}s`,
+                      animationTimingFunction: "ease-in-out",
+                      animationIterationCount: "infinite",
+                      animationPlayState: isPlaying ? "running" : "paused",
+                      transition: "height 0.4s ease",
                     }} />
                   );
                 })}

@@ -15,8 +15,11 @@ function Equalizer({ size = 18 }: { size?: number }) {
           style={{
             width: size * 0.16, height: size, borderRadius: 99, background: "#fff",
             transformOrigin: "bottom",
-            animation: `v-eq ${0.7 + i * 0.18}s ease-in-out infinite`,
+            animationName: "v-eq",
+            animationDuration: `${0.7 + i * 0.18}s`,
             animationDelay: `${i * 0.12}s`,
+            animationTimingFunction: "ease-in-out",
+            animationIterationCount: "infinite",
           }}
         />
       ))}

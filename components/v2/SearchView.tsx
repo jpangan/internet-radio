@@ -75,10 +75,15 @@ export default function SearchView({ current, playing, onPlay, onOpen }: SearchV
   const [selectedCountry, setSelectedCountry] = useState<Country | null>(null);
 
   const { data: countries } = useCountries();
-  const { data: searchData, status: searchStatus } = useInfiniteStations(
-    q.trim() ? "_" : null, q.trim()
+  const {
+    data: searchData, status: searchStatus,
+    fetchNextPage: searchFetchNextPage,
+    hasNextPage: searchHasNextPage,
+    isFetchingNextPage: searchIsFetchingNextPage,
+  } = useInfiniteStations(q.trim() ? "_" : null, q.trim());
+  const searchResults = Array.from(
+    new Map((searchData?.pages.flat() ?? []).map((s) => [s.stationuuid, s])).values()
   );
-  const searchResults = searchData?.pages.flat() ?? [];
 
   const countryMatches = q.trim() && countries
     ? countries.filter((c) => c.name.toLowerCase().includes(q.trim().toLowerCase()))
@@ -152,6 +157,23 @@ export default function SearchView({ current, playing, onPlay, onOpen }: SearchV
                     active={current?.stationuuid === s.stationuuid}
                     onPlay={(st) => onPlay(st, searchResults)} onOpen={(st) => onOpen(st, searchResults)} />
                 ))}
+                {searchHasNextPage && (
+                  <button
+                    type="button"
+                    onClick={() => searchFetchNextPage()}
+                    disabled={searchIsFetchingNextPage}
+                    style={{
+                      display: "block", width: "100%", margin: "16px 0 8px",
+                      padding: "13px 0", borderRadius: "var(--v-r-md)", border: "1px solid var(--v-hairline)",
+                      background: "var(--v-elev-2)", color: "var(--v-fg-2)", fontSize: 14, fontWeight: 650,
+                      cursor: searchIsFetchingNextPage ? "default" : "pointer",
+                      opacity: searchIsFetchingNextPage ? 0.6 : 1,
+                      fontFamily: "var(--v-font)",
+                    }}
+                  >
+                    {searchIsFetchingNextPage ? "Loading…" : "Load more"}
+                  </button>
+                )}
               </div>
             )}
           </div>

@@ -14,8 +14,12 @@ function MiniEqualizer() {
       {Array.from({ length: EQ_BARS }, (_, i) => (
         <span key={i} style={{
           width: 2, height: 13, borderRadius: 99, background: "var(--v-accent)",
-          transformOrigin: "bottom", animation: `v-eq ${0.7 + i * 0.18}s ease-in-out infinite`,
+          transformOrigin: "bottom",
+          animationName: "v-eq",
+          animationDuration: `${0.7 + i * 0.18}s`,
           animationDelay: `${i * 0.12}s`,
+          animationTimingFunction: "ease-in-out",
+          animationIterationCount: "infinite",
         }} />
       ))}
     </div>

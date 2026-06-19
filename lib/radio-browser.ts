@@ -63,6 +63,16 @@ export async function fetchStationsByTag(tag: string, limit = 12) {
   return res.json();
 }
 
+export async function fetchStationByUuid(uuid: string) {
+  const base = await getBaseUrl();
+  const res = await fetch(`${base}/stations/byuuid/${encodeURIComponent(uuid)}`, {
+    next: { revalidate: 0 },
+  });
+  if (!res.ok) throw new Error("Failed to fetch station by UUID");
+  const list = await res.json();
+  return Array.isArray(list) && list.length > 0 ? list[0] : null;
+}
+
 export async function fetchStationsByCountry(
   isoCode: string,
   fallbackName?: string,
