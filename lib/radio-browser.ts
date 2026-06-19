@@ -29,6 +29,40 @@ export async function fetchCountries() {
   return res.json();
 }
 
+export async function fetchTopStations(
+  order: "votes" | "clicktrend" | "clickcount",
+  limit = 12
+) {
+  const base = await getBaseUrl();
+  const params = new URLSearchParams({
+    order,
+    reverse: "true",
+    hidebroken: "true",
+    limit: String(limit),
+  });
+  const res = await fetch(`${base}/stations/search?${params}`, {
+    next: { revalidate: 300 },
+  });
+  if (!res.ok) throw new Error("Failed to fetch top stations");
+  return res.json();
+}
+
+export async function fetchStationsByTag(tag: string, limit = 12) {
+  const base = await getBaseUrl();
+  const params = new URLSearchParams({
+    order: "votes",
+    reverse: "true",
+    hidebroken: "true",
+    limit: String(limit),
+  });
+  const res = await fetch(
+    `${base}/stations/bytagexact/${encodeURIComponent(tag)}?${params}`,
+    { next: { revalidate: 300 } }
+  );
+  if (!res.ok) throw new Error("Failed to fetch stations by tag");
+  return res.json();
+}
+
 export async function fetchStationsByCountry(
   isoCode: string,
   fallbackName?: string,

@@ -1,6 +1,95 @@
 @import "tailwindcss";
 
+/* ─── V2 design tokens — dark (default) ─────────────────────── */
+:root,
+[data-theme="dark"] {
+  color-scheme: dark;
+  /* Canvas */
+  --v-bg: #08080d;
+  --v-bg-2: #0d0d15;
+  --v-elev: rgba(255,255,255,0.045);
+  --v-elev-2: rgba(255,255,255,0.07);
+  --v-elev-3: rgba(255,255,255,0.10);
+  --v-hairline: rgba(255,255,255,0.08);
+  --v-hairline-2: rgba(255,255,255,0.14);
+  /* Glass materials */
+  --v-mat-fill: rgba(16,16,24,0.62);
+  --v-mat-blur: blur(40px) saturate(180%);
+  --v-mat-chrome: rgba(10,10,16,0.72);
+  /* Text */
+  --v-fg: #ffffff;
+  --v-fg-2: rgba(255,255,255,0.62);
+  --v-fg-3: rgba(255,255,255,0.40);
+  --v-fg-4: rgba(255,255,255,0.24);
+  /* Brand accent */
+  --v-accent: #8b7bff;
+  --v-accent-2: #6c5ce7;
+  --v-accent-soft: rgba(139,123,255,0.16);
+  --v-on-accent: #ffffff;
+  /* Shadows */
+  --v-shadow-card: 0 1px 2px rgba(0,0,0,0.4);
+  --v-shadow-pop: 0 24px 64px rgba(0,0,0,0.55), 0 2px 8px rgba(0,0,0,0.4);
+  --v-shadow-player: 0 -1px 0 var(--v-hairline), 0 -24px 60px rgba(0,0,0,0.4);
+}
+
+/* ─── V2 design tokens — light ───────────────────────────────── */
+[data-theme="light"] {
+  color-scheme: light;
+  --v-bg: #f4f4f7;
+  --v-bg-2: #ffffff;
+  --v-elev: rgba(0,0,0,0.035);
+  --v-elev-2: rgba(0,0,0,0.055);
+  --v-elev-3: rgba(0,0,0,0.08);
+  --v-hairline: rgba(0,0,0,0.08);
+  --v-hairline-2: rgba(0,0,0,0.14);
+  --v-mat-fill: rgba(255,255,255,0.7);
+  --v-mat-blur: blur(40px) saturate(180%);
+  --v-mat-chrome: rgba(255,255,255,0.78);
+  --v-fg: #14141a;
+  --v-fg-2: rgba(20,20,26,0.62);
+  --v-fg-3: rgba(20,20,26,0.42);
+  --v-fg-4: rgba(20,20,26,0.26);
+  --v-accent: #6c5ce7;
+  --v-accent-2: #8b7bff;
+  --v-accent-soft: rgba(108,92,231,0.12);
+  --v-on-accent: #ffffff;
+  --v-shadow-card: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04);
+  --v-shadow-pop: 0 24px 64px rgba(0,0,0,0.18), 0 2px 8px rgba(0,0,0,0.08);
+  --v-shadow-player: 0 -1px 0 var(--v-hairline), 0 -24px 60px rgba(0,0,0,0.10);
+
+  /* Override legacy dark vars for light mode */
+  --bg: var(--v-bg);
+  --glass: rgba(0,0,0,0.04);
+  --glass-hover: rgba(0,0,0,0.08);
+  --glass-border: rgba(0,0,0,0.09);
+  --surface: rgba(0,0,0,0.06);
+  --accent: #6c5ce7;
+  --accent-hover: #8b7bff;
+  --accent-glow: rgba(108,92,231,0.3);
+  --accent-soft: rgba(108,92,231,0.12);
+  --fg: #14141a;
+  --fg-2: rgba(20,20,26,0.62);
+  --fg-3: rgba(20,20,26,0.42);
+  --muted: rgba(20,20,26,0.4);
+  --border: rgba(0,0,0,0.09);
+  --border-subtle: rgba(0,0,0,0.06);
+  --background: #f4f4f7;
+  --foreground: #14141a;
+  --sidebar: #ffffff;
+}
+
+/* ─── V2 shared constants (theme-independent) ────────────────── */
 :root {
+  --v-font: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --v-r-sm: 10px;
+  --v-r-md: 14px;
+  --v-r-lg: 20px;
+  --v-r-xl: 28px;
+  --v-r-pill: 999px;
+  --v-ease: cubic-bezier(0.32, 0.72, 0, 1);
+  --v-ease-soft: cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* ─── Legacy dark vars (default dark) ─── */
   --bg: #07070f;
   --glass: rgba(255, 255, 255, 0.04);
   --glass-hover: rgba(255, 255, 255, 0.08);
@@ -20,8 +109,6 @@
   --live-soft: rgba(52, 211, 153, 0.12);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
   --safe-top: env(safe-area-inset-top, 0px);
-
-  /* Legacy aliases used by StationFavicon and other components */
   --background: #07070f;
   --foreground: #ffffff;
   --muted: rgba(255, 255, 255, 0.4);
@@ -175,3 +262,33 @@ body {
     padding-bottom: max(1rem, env(safe-area-inset-bottom));
   }
 }
+
+/* ─── V2 keyframes ───────────────────────────────────────────── */
+@keyframes v-fade-up { from { transform: translateY(12px); } to { transform: none; } }
+@keyframes v-fade    { from { transform: translateY(8px);  } to { transform: none; } }
+@keyframes v-pop-in  { from { transform: translateY(10px) scale(0.985); } to { transform: none; } }
+@keyframes v-eq      { 0%,100% { transform: scaleY(0.35); } 50% { transform: scaleY(1); } }
+@keyframes v-rise    { from { transform: translateY(18px) scale(0.97); } to { transform: none; } }
+
+@media (prefers-reduced-motion: reduce) {
+  *,*::before,*::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
+}
+
+/* ─── V2 shelf (horizontal scroll, hidden scrollbar) ─────────── */
+.v-shelf {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.v-shelf::-webkit-scrollbar { display: none; }
+
+/* ─── V2 scrollbar ───────────────────────────────────────────── */
+::-webkit-scrollbar       { width: 10px; height: 10px; }
+::-webkit-scrollbar-thumb { background: var(--v-elev-3, rgba(255,255,255,0.1)); border-radius: 999px; border: 3px solid transparent; background-clip: content-box; }
+::-webkit-scrollbar-track { background: transparent; }
+
+/* ─── V2 volume range (light-on-dark inside NowPlaying) ──────── */
+.v-range-light { accent-color: #fff; }
+
+/* ─── V2 fab hover ───────────────────────────────────────────── */
+.v-fab:hover { transform: scale(1.06); }
+.v-fab:active { transform: scale(0.94); }

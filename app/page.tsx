@@ -1,12 +1,19 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import Player from "@/components/Player";
-import CountryModal from "@/components/CountryModal";
-import FavoritesModal, { HeartIcon } from "@/components/FavoritesModal";
-import ShareModal from "@/components/ShareModal";
-import type { Country, Favorite, Station } from "@/lib/types";
-import { useInfiniteStations, useQueryClient, queryKeys, fetchCountriesApi } from "@/lib/queries";
+import { useCallback, useEffect, useRef, useState } from "react";
+import AudioEngine from "@/components/Player";
+import Sidebar, { type View } from "@/components/v2/Sidebar";
+import MobileNav from "@/components/v2/MobileNav";
+import Logo from "@/components/v2/Logo";
+import ThemeToggle from "@/components/v2/ThemeToggle";
+import MiniPlayer from "@/components/v2/MiniPlayer";
+import NowPlaying from "@/components/v2/NowPlaying";
+import ShareSheet from "@/components/v2/ShareSheet";
+import HomeView from "@/components/v2/HomeView";
+import SearchView from "@/components/v2/SearchView";
+import BrowseView from "@/components/v2/BrowseView";
+import LibraryView from "@/components/v2/LibraryView";
+import { useQueryClient, queryKeys, fetchCountriesApi } from "@/lib/queries";
 import {
   trackStationSelected,
   trackStationNavigated,
@@ -14,434 +21,255 @@ import {
   trackFavoriteRemoved,
   trackStationShared,
 } from "@/lib/analytics";
-import FlagIcon from "@/components/FlagIcon";
+import type { Country, Station } from "@/lib/types";
 
 const COUNTRY_KEY = "ir-country";
 const STATION_KEY = "ir-station";
 const FAVORITES_KEY = "ir-favorites";
 
-function readStoredFavorites(): Favorite[] {
+function readFavorites(): Station[] {
   if (typeof window === "undefined") return [];
   try {
-    const raw = localStorage.getItem(FAVORITES_KEY);
-    return raw ? JSON.parse(raw) : [];
-  } catch {
-    return [];
-  }
+    const raw = JSON.parse(localStorage.getItem(FAVORITES_KEY) ?? "[]");
+    if (!Array.isArray(raw)) return [];
+    // Migrate from old Favorite[] format ({ station, country }) to Station[]
+    return raw.map((item: Station | { station: Station }) =>
+      "station" in item && item.station ? item.station : item as Station
+    );
+  } catch { return []; }
 }
 
-export default function Home() {
+export default function App() {
   const queryClient = useQueryClient();
+  const hostRef = useRef<HTMLDivElement>(null);
+  const [width, setWidth] = useState(1200);
+
+  const [view, setView] = useState<View>("home");
   const [currentStation, setCurrentStation] = useState<Station | null>(null);
-  const [pendingStationUuid, setPendingStationUuid] = useState<string | null>(null);
-  const [selectedCountry, setSelectedCountry] = useState<Country | null>(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isFavoritesOpen, setIsFavoritesOpen] = useState(false);
-  const [favorites, setFavorites] = useState<Favorite[]>([]);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [shareCopied, setShareCopied] = useState(false);
-  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+  const [playContext, setPlayContext] = useState<Station[]>([]);
+  const [npOpen, setNpOpen] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
   const [shareUrl, setShareUrl] = useState("");
-  const [favoritesMessage, setFavoritesMessage] = useState<string | null>(null);
+  const [favorites, setFavorites] = useState<Station[]>([]);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [pendingUuid, setPendingUuid] = useState<string | null>(null);
 
-  const stationIdentifier = selectedCountry
-    ? (selectedCountry.iso_3166_1 || selectedCountry.name)
-    : null;
-  const { data: stationsData, status: stationsStatus } = useInfiniteStations(stationIdentifier, "");
-  const stationList = stationsData?.pages.flat() ?? [];
-
-  // Once the station list loads, find and apply any pending station
+  // Responsive: observe host width
   useEffect(() => {
-    if (!pendingStationUuid || stationsStatus !== "success") return;
-    const station = stationList.find((s) => s.stationuuid === pendingStationUuid);
-    setPendingStationUuid(null);
-    if (station) setCurrentStation(station);
-  }, [stationList, pendingStationUuid, stationsStatus]);
-
-  // Load favorites after mount to avoid SSR/client hydration mismatch
-  useEffect(() => {
-    setFavorites(readStoredFavorites());
+    const el = hostRef.current;
+    if (!el || !window.ResizeObserver) return;
+    const ro = new ResizeObserver((entries) => setWidth(entries[0].contentRect.width));
+    ro.observe(el);
+    return () => ro.disconnect();
   }, []);
 
-  // Resolve shared URL params on mount — takes priority over localStorage
+  const compact = width < 760;
+
+  // Hydrate favorites
+  useEffect(() => { setFavorites(readFavorites()); }, []);
+
+  // Resolve shared URL on mount
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const countryParam = params.get("country");
     const stationParam = params.get("station");
     if (!countryParam || !stationParam) return;
-
-    // Clear params from URL immediately so back/forward history is clean
     history.replaceState(null, "", window.location.pathname);
-
-    queryClient
-      .fetchQuery({ queryKey: queryKeys.countries, queryFn: fetchCountriesApi })
-      .then((countries: Country[]) => {
-        // Match by ISO code (new share URLs) or name (legacy share URLs)
-        const found = countries.find(
-          (c) =>
-            c.iso_3166_1 === countryParam ||
-            c.name.toLowerCase() === countryParam.toLowerCase()
-        );
-        const country = found ?? { name: countryParam, stationcount: 0, iso_3166_1: "" };
-        setSelectedCountry(country);
-        localStorage.setItem(COUNTRY_KEY, JSON.stringify(country));
-        setPendingStationUuid(stationParam);
-      })
-      .catch(() => {}); // Failed fetch — stay on empty state
+    queryClient.fetchQuery({ queryKey: queryKeys.countries, queryFn: fetchCountriesApi }).then((countries: Country[]) => {
+      const found = countries.find((c) => c.iso_3166_1 === countryParam || c.name.toLowerCase() === countryParam.toLowerCase());
+      const country = found ?? { name: countryParam, stationcount: 0, iso_3166_1: countryParam };
+      localStorage.setItem(COUNTRY_KEY, JSON.stringify(country));
+      setPendingUuid(stationParam);
+    }).catch(() => {});
   }, [queryClient]);
 
-  // Restore last session from localStorage
+  // Restore session
   useEffect(() => {
-    // Skip if a shared URL is being handled (that effect takes priority)
     const params = new URLSearchParams(window.location.search);
     if (params.get("country") && params.get("station")) return;
-
-    const savedCountryStr = localStorage.getItem(COUNTRY_KEY);
-    const savedStationStr = localStorage.getItem(STATION_KEY);
-    if (!savedCountryStr) return;
-
     try {
-      const savedCountry: Country = JSON.parse(savedCountryStr);
-      setSelectedCountry(savedCountry);
-
-      if (savedStationStr) {
-        const savedStation: Station = JSON.parse(savedStationStr);
-        setCurrentStation(savedStation); // set immediately so the player can start loading
-        setPendingStationUuid(savedStation.stationuuid); // refresh from fresh list once loaded
+      const savedStation = localStorage.getItem(STATION_KEY);
+      if (savedStation) {
+        const s: Station = JSON.parse(savedStation);
+        setCurrentStation(s);
       }
-    } catch {
-      // Ignore malformed saved data
-    }
+    } catch {}
   }, []);
 
-  // Persist station changes (e.g. next/prev navigation)
-  useEffect(() => {
-    if (currentStation) {
-      localStorage.setItem(STATION_KEY, JSON.stringify(currentStation));
-    }
-  }, [currentStation]);
-
-  const handleSelectStation = useCallback(
-    (station: Station, _list: Station[], country: Country) => {
-      setCurrentStation(station);
-      setSelectedCountry(country);
-      localStorage.setItem(COUNTRY_KEY, JSON.stringify(country));
-      localStorage.setItem(STATION_KEY, JSON.stringify(station));
-      setIsModalOpen(false);
-      trackStationSelected(station, country);
-    },
-    []
-  );
-
-  const handleClearStation = useCallback(() => {
-    setCurrentStation(null);
+  // Nav: play from a list
+  const handlePlay = useCallback((s: Station, list: Station[]) => {
+    setCurrentStation(s);
+    setPlayContext(list);
+    localStorage.setItem(STATION_KEY, JSON.stringify(s));
+    trackStationSelected(s, { name: s.country, stationcount: 0, iso_3166_1: s.countrycode ?? "" });
   }, []);
 
-  const isFavorited = favorites.some(
-    (f) => f.station.stationuuid === currentStation?.stationuuid
-  );
+  // Open now-playing and start playing
+  const handleOpen = useCallback((s: Station, list: Station[]) => {
+    setCurrentStation(s);
+    setPlayContext(list);
+    setNpOpen(true);
+    localStorage.setItem(STATION_KEY, JSON.stringify(s));
+    trackStationSelected(s, { name: s.country, stationcount: 0, iso_3166_1: s.countrycode ?? "" });
+  }, []);
 
-  const handleToggleFavorite = useCallback(() => {
-    if (!currentStation || !selectedCountry) return;
-    const already = favorites.some(
-      (f) => f.station.stationuuid === currentStation.stationuuid
-    );
+  const currentIndex = currentStation && playContext.length > 0
+    ? playContext.findIndex((s) => s.stationuuid === currentStation.stationuuid)
+    : -1;
+
+  const handlePrev = useCallback(() => {
+    if (!currentStation || playContext.length === 0) return;
+    const idx = playContext.findIndex((s) => s.stationuuid === currentStation.stationuuid);
+    if (idx === -1) return;
+    const next = playContext[(idx - 1 + playContext.length) % playContext.length];
+    setCurrentStation(next);
+    localStorage.setItem(STATION_KEY, JSON.stringify(next));
+    trackStationNavigated(next, "prev");
+  }, [currentStation, playContext]);
+
+  const handleNext = useCallback(() => {
+    if (!currentStation || playContext.length === 0) return;
+    const idx = playContext.findIndex((s) => s.stationuuid === currentStation.stationuuid);
+    if (idx === -1) return;
+    const next = playContext[(idx + 1) % playContext.length];
+    setCurrentStation(next);
+    localStorage.setItem(STATION_KEY, JSON.stringify(next));
+    trackStationNavigated(next, "next");
+  }, [currentStation, playContext]);
+
+  const isFav = currentStation ? favorites.some((f) => f.stationuuid === currentStation.stationuuid) : false;
+
+  const handleToggleFav = useCallback(() => {
+    if (!currentStation) return;
+    const already = favorites.some((f) => f.stationuuid === currentStation.stationuuid);
     const next = already
-      ? favorites.filter((f) => f.station.stationuuid !== currentStation.stationuuid)
-      : [...favorites, { station: currentStation, country: selectedCountry }];
+      ? favorites.filter((f) => f.stationuuid !== currentStation.stationuuid)
+      : [currentStation, ...favorites];
     setFavorites(next);
     localStorage.setItem(FAVORITES_KEY, JSON.stringify(next));
-    const label = currentStation.name.length > 30
-      ? currentStation.name.slice(0, 30).trimEnd() + "…"
-      : currentStation.name;
-    setFavoritesMessage(already ? `Removed "${label}" from favorites` : `Added "${label}" to favorites`);
-    setTimeout(() => setFavoritesMessage(null), 2000);
-    if (already) trackFavoriteRemoved(currentStation, selectedCountry);
-    else trackFavoriteAdded(currentStation, selectedCountry);
-  }, [currentStation, selectedCountry, favorites]);
+    const countryObj: Country = { name: currentStation.country, stationcount: 0, iso_3166_1: currentStation.countrycode ?? "" };
+    if (already) trackFavoriteRemoved(currentStation, countryObj);
+    else trackFavoriteAdded(currentStation, countryObj);
+  }, [currentStation, favorites]);
 
-  const handleRemoveFavorite = useCallback((stationuuid: string) => {
-    const next = favorites.filter((f) => f.station.stationuuid !== stationuuid);
+  const handleRemoveFav = useCallback((s: Station) => {
+    const next = favorites.filter((f) => f.stationuuid !== s.stationuuid);
     setFavorites(next);
     localStorage.setItem(FAVORITES_KEY, JSON.stringify(next));
   }, [favorites]);
 
-  const handleSelectFavorite = useCallback((fav: Favorite) => {
-    setSelectedCountry(fav.country);
-    setCurrentStation(fav.station);
-    localStorage.setItem(COUNTRY_KEY, JSON.stringify(fav.country));
-    localStorage.setItem(STATION_KEY, JSON.stringify(fav.station));
-    setIsFavoritesOpen(false);
-    // React Query fetches the station list; refresh currentStation once loaded
-    setPendingStationUuid(fav.station.stationuuid);
-  }, []);
-
   const handleShare = useCallback(() => {
-    if (!currentStation || !selectedCountry) return;
-    trackStationShared(currentStation, selectedCountry);
+    if (!currentStation) return;
     const url = new URL(window.location.href);
     url.search = "";
-    url.searchParams.set("country", selectedCountry.iso_3166_1 || selectedCountry.name);
+    url.searchParams.set("country", currentStation.countrycode ?? currentStation.country);
     url.searchParams.set("station", currentStation.stationuuid);
     setShareUrl(url.toString());
-    setIsShareModalOpen(true);
-  }, [currentStation, selectedCountry]);
+    setShareOpen(true);
+    trackStationShared(currentStation, { name: currentStation.country, stationcount: 0, iso_3166_1: currentStation.countrycode ?? "" });
+  }, [currentStation]);
 
-  const handleShareCopy = useCallback(() => {
-    navigator.clipboard?.writeText(shareUrl).then(() => {
-      setShareCopied(true);
-      setTimeout(() => setShareCopied(false), 2000);
-    });
-  }, [shareUrl]);
-
-  const currentIndex =
-    currentStation && stationList.length > 0
-      ? stationList.findIndex(
-          (s) =>
-            s.url_resolved === currentStation.url_resolved &&
-            s.name === currentStation.name
-        )
-      : -1;
-
-  const handleAdjacentStation = useCallback(
-    (direction: 1 | -1) => {
-      if (!currentStation || stationList.length === 0) return;
-      const index = stationList.findIndex(
-        (s) =>
-          s.url_resolved === currentStation.url_resolved &&
-          s.name === currentStation.name
-      );
-      if (index === -1) return;
-      const next = stationList[(index + direction + stationList.length) % stationList.length];
-      setCurrentStation(next);
-      trackStationNavigated(next, direction === 1 ? "next" : "prev");
-    },
-    [currentStation, stationList]
-  );
-
-  const handleSelectStationAt = useCallback(
-    (index: number) => {
-      if (index >= 0 && index < stationList.length) {
-        setCurrentStation(stationList[index]);
-      }
-    },
-    [stationList]
-  );
+  const viewProps = { current: currentStation, playing: isPlaying, onPlay: handlePlay, onOpen: handleOpen };
 
   return (
     <div
-      className="flex h-dvh flex-col overflow-hidden"
-      style={{ background: "var(--bg)" }}
-    >
-      {/* Full-screen background gradient */}
-      <div
-        className="pointer-events-none fixed inset-0 -z-10"
-        style={{
-          background:
-            "radial-gradient(ellipse 100% 60% at 50% -5%, rgba(124,108,240,0.13), transparent 65%)",
-        }}
-      />
-
-      {/* App header */}
-      <header
-        className="glass-panel relative z-10 shrink-0 border-b"
-        style={{
-          borderColor: "rgba(255,255,255,0.07)",
-          paddingTop: "max(0.75rem, var(--safe-top))",
-        }}
-      >
-        <div className="mx-auto flex max-w-2xl items-center gap-3 px-4 pb-3">
-          {/* Logo mark + wordmark */}
-          <div className="flex flex-1 min-w-0 items-center gap-2.5">
-            <RadioMark />
-            <div>
-              <p className="text-sm font-bold tracking-tight leading-none text-white">
-                Internet Radio
-              </p>
-              <p
-                className="mt-0.5 text-[10px] leading-none"
-                style={{ color: "rgba(255,255,255,0.3)" }}
-              >
-                Stream the world
-              </p>
-            </div>
-          </div>
-
-          {/* Active country pill */}
-          {selectedCountry && (
-            <button
-              type="button"
-              onClick={() => setIsModalOpen(true)}
-              className="flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-all"
-              style={{
-                background: "rgba(255,255,255,0.06)",
-                border: "1px solid rgba(255,255,255,0.1)",
-                color: "rgba(255,255,255,0.7)",
-                maxWidth: "160px",
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = "rgba(255,255,255,0.1)";
-                e.currentTarget.style.color = "white";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = "rgba(255,255,255,0.06)";
-                e.currentTarget.style.color = "rgba(255,255,255,0.7)";
-              }}
-            >
-              <FlagIcon
-                code={selectedCountry.iso_3166_1}
-                className="h-3 w-4 shrink-0 rounded-[2px] object-cover"
-              />
-              <span className="truncate">{selectedCountry.name}</span>
-            </button>
-          )}
-
-          {/* Globe button */}
-          <button
-            type="button"
-            onClick={() => setIsModalOpen(true)}
-            aria-label="Select country"
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition-all"
-            style={{
-              background: "rgba(255,255,255,0.06)",
-              border: "1px solid rgba(255,255,255,0.1)",
-              color: "rgba(255,255,255,0.55)",
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = "rgba(124,108,240,0.2)";
-              e.currentTarget.style.borderColor = "rgba(124,108,240,0.4)";
-              e.currentTarget.style.color = "#9488f5";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = "rgba(255,255,255,0.06)";
-              e.currentTarget.style.borderColor = "rgba(255,255,255,0.1)";
-              e.currentTarget.style.color = "rgba(255,255,255,0.55)";
-            }}
-          >
-            <svg
-              className="h-4.5 w-4.5"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.75"
-              strokeLinecap="round"
-            >
-              <circle cx="12" cy="12" r="10" />
-              <path d="M12 2a14.5 14.5 0 0 0 0 20M12 2a14.5 14.5 0 0 1 0 20M2 12h20" />
-            </svg>
-          </button>
-
-          {/* Favorites button */}
-          <button
-            type="button"
-            onClick={() => setIsFavoritesOpen(true)}
-            aria-label="Favorites"
-            className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition-all"
-            style={{
-              background: favorites.length > 0 ? "rgba(251,113,133,0.12)" : "rgba(255,255,255,0.06)",
-              border: favorites.length > 0 ? "1px solid rgba(251,113,133,0.3)" : "1px solid rgba(255,255,255,0.1)",
-              color: favorites.length > 0 ? "#fb7185" : "rgba(255,255,255,0.55)",
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = "rgba(251,113,133,0.18)";
-              e.currentTarget.style.borderColor = "rgba(251,113,133,0.4)";
-              e.currentTarget.style.color = "#fb7185";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = favorites.length > 0 ? "rgba(251,113,133,0.12)" : "rgba(255,255,255,0.06)";
-              e.currentTarget.style.borderColor = favorites.length > 0 ? "rgba(251,113,133,0.3)" : "rgba(255,255,255,0.1)";
-              e.currentTarget.style.color = favorites.length > 0 ? "#fb7185" : "rgba(255,255,255,0.55)";
-            }}
-          >
-            <HeartIcon filled={favorites.length > 0} className="h-4 w-4" />
-            {favorites.length > 0 && (
-              <span
-                className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full text-[9px] font-bold text-white"
-                style={{ background: "#fb7185" }}
-              >
-                {favorites.length > 9 ? "9+" : favorites.length}
-              </span>
-            )}
-          </button>
-        </div>
-      </header>
-
-      {/* Player */}
-      <Player
-        station={currentStation}
-        stationList={stationList}
-        currentIndex={currentIndex}
-        onPrevious={() => handleAdjacentStation(-1)}
-        onNext={() => handleAdjacentStation(1)}
-        onSelectStationAt={handleSelectStationAt}
-        onClear={handleClearStation}
-        onOpenCountrySelector={() => setIsModalOpen(true)}
-        onPlayingChange={setIsPlaying}
-        isFavorited={isFavorited}
-        onToggleFavorite={handleToggleFavorite}
-        onShare={currentStation ? handleShare : undefined}
-        shareCopied={shareCopied}
-        favoritesMessage={favoritesMessage}
-        className="flex min-h-0 flex-1"
-      />
-
-      {/* Share modal */}
-      <ShareModal
-        isOpen={isShareModalOpen}
-        url={shareUrl}
-        onClose={() => setIsShareModalOpen(false)}
-        onCopyLink={handleShareCopy}
-        copied={shareCopied}
-        station={currentStation}
-        country={selectedCountry}
-      />
-
-      {/* Country / station selector modal */}
-      <CountryModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        onSelectStation={handleSelectStation}
-        currentStation={currentStation}
-        initialCountry={selectedCountry}
-      />
-
-      {/* Favorites modal */}
-      <FavoritesModal
-        isOpen={isFavoritesOpen}
-        onClose={() => setIsFavoritesOpen(false)}
-        favorites={favorites}
-        onSelectFavorite={handleSelectFavorite}
-        onRemoveFavorite={handleRemoveFavorite}
-        currentStationuuid={currentStation?.stationuuid}
-      />
-
-      <span className="sr-only">{isPlaying ? "Playing" : "Paused"}</span>
-    </div>
-  );
-}
-
-function RadioMark() {
-  return (
-    <div
-      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl"
+      ref={hostRef}
       style={{
-        background: "linear-gradient(135deg, rgba(148,136,245,0.25), rgba(124,108,240,0.15))",
-        border: "1px solid rgba(124,108,240,0.35)",
+        position: "relative", width: "100%", height: "100dvh", overflow: "hidden",
+        display: "flex", background: "var(--v-bg)", color: "var(--v-fg)",
+        fontFamily: "var(--v-font)",
       }}
     >
-      <svg
-        className="h-5 w-5"
-        style={{ color: "#9488f5" }}
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.75"
-        strokeLinecap="round"
+      <AudioEngine
+        station={currentStation}
+        stationList={playContext}
+        currentIndex={currentIndex}
+        onPrevious={handlePrev}
+        onNext={handleNext}
+        onPlayingChange={setIsPlaying}
       >
-        <circle cx="12" cy="14" r="2" fill="currentColor" stroke="none" />
-        <path d="M8.5 10.5C9.7 9.3 10.8 8.8 12 8.8s2.3.5 3.5 1.7" />
-        <path d="M5.5 7.5C7.4 5.6 9.6 4.6 12 4.6s4.6 1 6.5 2.9" />
-      </svg>
+        {/* Desktop sidebar */}
+        {!compact && (
+          <Sidebar view={view} onNav={setView} favCount={favorites.length} />
+        )}
+
+        {/* Main column */}
+        <div style={{
+          flex: 1, minWidth: 0, display: "flex", flexDirection: "column",
+          position: "relative", minHeight: 0,
+        }}>
+          {/* Mobile top row */}
+          {compact && (
+            <div style={{
+              display: "flex", alignItems: "center", justifyContent: "space-between",
+              padding: "max(16px, env(safe-area-inset-top)) 18px 6px",
+              background: "var(--v-bg)",
+            }}>
+              <Logo />
+              <ThemeToggle />
+            </div>
+          )}
+
+          {/* Scrollable content */}
+          <main style={{
+            flex: 1, minHeight: 0, overflowY: "auto",
+            padding: compact ? "8px 18px 0" : "0 32px 0",
+            paddingBottom: currentStation
+              ? (compact ? 150 : 80)
+              : (compact ? 80 : 28),
+          }}>
+            <div style={{ maxWidth: 1180, margin: "0 auto" }}>
+              {view === "home" && <HomeView {...viewProps} />}
+              {view === "search" && <SearchView {...viewProps} />}
+              {view === "browse" && <BrowseView {...viewProps} />}
+              {view === "library" && (
+                <LibraryView
+                  favorites={favorites}
+                  current={currentStation}
+                  playing={isPlaying}
+                  onPlay={handlePlay}
+                  onOpen={handleOpen}
+                  onRemove={handleRemoveFav}
+                />
+              )}
+            </div>
+          </main>
+
+          {/* Docked player + mobile nav */}
+          <div style={{ position: "absolute", left: 0, right: 0, bottom: 0, zIndex: 45 }}>
+            {currentStation && (
+              <MiniPlayer
+                station={currentStation}
+                onNext={handleNext}
+                onExpand={() => setNpOpen(true)}
+                isFav={isFav}
+                onFav={handleToggleFav}
+              />
+            )}
+            {compact && <MobileNav view={view} onNav={setView} favCount={favorites.length} />}
+          </div>
+        </div>
+
+        {/* Full-screen Now Playing */}
+        <NowPlaying
+          station={currentStation}
+          open={npOpen}
+          onClose={() => setNpOpen(false)}
+          onNext={handleNext}
+          onPrev={handlePrev}
+          isFav={isFav}
+          onFav={handleToggleFav}
+          onShare={handleShare}
+        />
+
+        {/* Share sheet */}
+        <ShareSheet
+          open={shareOpen}
+          station={currentStation}
+          onClose={() => setShareOpen(false)}
+          url={shareUrl}
+        />
+      </AudioEngine>
     </div>
   );
 }
