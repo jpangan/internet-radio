@@ -146,9 +146,10 @@ interface HomeViewProps {
   playing: boolean;
   onPlay: (s: Station, list: Station[]) => void;
   onOpen: (s: Station, list: Station[]) => void;
+  compact?: boolean;
 }
 
-export default function HomeView({ current, playing, onPlay, onOpen }: HomeViewProps) {
+export default function HomeView({ current, playing, onPlay, onOpen, compact }: HomeViewProps) {
   const { data: topVotes } = useTopStations("votes");
   const { data: trending } = useTopStations("clicktrend");
   const { data: popular } = useTopStations("clickcount");
@@ -165,7 +166,7 @@ export default function HomeView({ current, playing, onPlay, onOpen }: HomeViewP
 
   return (
     <div style={{ animation: "v-fade .35s ease" }}>
-      <TopBar title={greeting()} />
+      {!compact && <TopBar title={greeting()} />}
 
       {heroStation ? (
         <Hero

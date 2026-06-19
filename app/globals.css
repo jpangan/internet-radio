@@ -1,5 +1,9 @@
 @import "tailwindcss";
 
+@theme {
+  --font-sans: var(--font-inter, "Inter"), system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
 /* ─── V2 design tokens — dark (default) ─────────────────────── */
 :root,
 [data-theme="dark"] {
@@ -80,7 +84,7 @@
 
 /* ─── V2 shared constants (theme-independent) ────────────────── */
 :root {
-  --v-font: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --v-font: var(--font-inter, "Inter"), system-ui, -apple-system, "Segoe UI", sans-serif;
   --v-r-sm: 10px;
   --v-r-md: 14px;
   --v-r-lg: 20px;
@@ -124,7 +128,8 @@ html {
 body {
   background: var(--bg);
   color: var(--fg);
-  font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-family: var(--font-inter, "Inter"), system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-synthesis: none;
   overscroll-behavior: none;
 }
 
