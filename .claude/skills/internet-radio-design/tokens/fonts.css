@@ -1,0 +1,4 @@
+/* Inter — the product's single typeface (loaded via next/font in the app).
+   Shipped here from Google Fonts. If you have the variable .woff2 binaries,
+   drop them in assets/fonts/ and swap these @font-face src lines to point at them. */
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap");

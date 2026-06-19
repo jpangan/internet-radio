@@ -1,0 +1,36 @@
+/* ── Spacing & radii ───────────────────────────────────────────
+   4px base grid. Radii run large — pills and soft 16–28px corners
+   dominate; nothing is sharp. */
+:root {
+  --space-0_5: 2px;
+  --space-1: 4px;
+  --space-1_5: 6px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-7: 28px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+
+  /* Radii */
+  --radius-sm: 6px;    /* tiny tags / chips */
+  --radius-md: 10px;   /* inputs, small tiles */
+  --radius-lg: 12px;   /* list rows, buttons */
+  --radius-xl: 16px;   /* cards, error panels */
+  --radius-2xl: 20px;  /* modal sheets (desktop), favicons md */
+  --radius-3xl: 24px;  /* artwork, large surfaces */
+  --radius-4xl: 28px;  /* empty-state icon wells */
+  --radius-full: 9999px; /* pills, all circular controls */
+
+  /* Common control sizes */
+  --control-sm: 32px;  /* 8x8 small icon button */
+  --control-md: 36px;  /* 9x9 header buttons */
+  --control-lg: 44px;  /* 11x11 nav buttons (min touch target) */
+  --control-play: 64px;/* primary play button */
+
+  /* Layout */
+  --content-max: 672px; /* max-w-2xl — the app's single centered column */
+}

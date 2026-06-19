@@ -1,0 +1,95 @@
+/* ─────────────────────────────────────────────────────────────
+   Internet Radio V2 — theme tokens (light + dark).
+   A hybrid system: Spotify structure, Apple Music polish.
+   Violet stays the brand chrome; per-station gradients bring color.
+   Variables are V2-local (prefix -v) so they never clash with the DS tokens.
+   ───────────────────────────────────────────────────────────── */
+
+:root,
+[data-theme="dark"] {
+  color-scheme: dark;
+  /* Canvas — layered near-black with a faint violet cast */
+  --v-bg: #08080d;
+  --v-bg-2: #0d0d15;
+  --v-elev: rgba(255,255,255,0.045);
+  --v-elev-2: rgba(255,255,255,0.07);
+  --v-elev-3: rgba(255,255,255,0.10);
+  --v-hairline: rgba(255,255,255,0.08);
+  --v-hairline-2: rgba(255,255,255,0.14);
+
+  /* Materials (glass) */
+  --v-mat-fill: rgba(16,16,24,0.62);
+  --v-mat-blur: blur(40px) saturate(180%);
+  --v-mat-chrome: rgba(10,10,16,0.72);
+
+  /* Text */
+  --v-fg: #ffffff;
+  --v-fg-2: rgba(255,255,255,0.62);
+  --v-fg-3: rgba(255,255,255,0.40);
+  --v-fg-4: rgba(255,255,255,0.24);
+
+  /* Brand accent */
+  --v-accent: #8b7bff;
+  --v-accent-2: #6c5ce7;
+  --v-accent-soft: rgba(139,123,255,0.16);
+  --v-on-accent: #ffffff;
+
+  --v-shadow-card: 0 1px 2px rgba(0,0,0,0.4);
+  --v-shadow-pop: 0 24px 64px rgba(0,0,0,0.55), 0 2px 8px rgba(0,0,0,0.4);
+  --v-shadow-player: 0 -1px 0 var(--v-hairline), 0 -24px 60px rgba(0,0,0,0.4);
+}
+
+[data-theme="light"] {
+  color-scheme: light;
+  --v-bg: #f4f4f7;
+  --v-bg-2: #ffffff;
+  --v-elev: rgba(0,0,0,0.035);
+  --v-elev-2: rgba(0,0,0,0.055);
+  --v-elev-3: rgba(0,0,0,0.08);
+  --v-hairline: rgba(0,0,0,0.08);
+  --v-hairline-2: rgba(0,0,0,0.14);
+
+  --v-mat-fill: rgba(255,255,255,0.7);
+  --v-mat-blur: blur(40px) saturate(180%);
+  --v-mat-chrome: rgba(255,255,255,0.78);
+
+  --v-fg: #14141a;
+  --v-fg-2: rgba(20,20,26,0.62);
+  --v-fg-3: rgba(20,20,26,0.42);
+  --v-fg-4: rgba(20,20,26,0.26);
+
+  --v-accent: #6c5ce7;
+  --v-accent-2: #8b7bff;
+  --v-accent-soft: rgba(108,92,231,0.12);
+  --v-on-accent: #ffffff;
+
+  --v-shadow-card: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04);
+  --v-shadow-pop: 0 24px 64px rgba(0,0,0,0.18), 0 2px 8px rgba(0,0,0,0.08);
+  --v-shadow-player: 0 -1px 0 var(--v-hairline), 0 -24px 60px rgba(0,0,0,0.10);
+}
+
+:root {
+  --v-font: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --v-r-sm: 10px;
+  --v-r-md: 14px;
+  --v-r-lg: 20px;
+  --v-r-xl: 28px;
+  --v-r-pill: 999px;
+  --v-ease: cubic-bezier(0.32, 0.72, 0, 1);
+  --v-ease-soft: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+* { box-sizing: border-box; }
+
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-thumb { background: var(--v-elev-3); border-radius: 999px; border: 3px solid transparent; background-clip: content-box; }
+::-webkit-scrollbar-track { background: transparent; }
+
+@keyframes v-fade-up { from { transform: translateY(12px); } to { transform: none; } }
+@keyframes v-fade { from { transform: translateY(8px); } to { transform: none; } }
+@keyframes v-pop-in { from { transform: translateY(10px) scale(0.985); } to { transform: none; } }
+@keyframes v-eq { 0%,100% { transform: scaleY(0.35); } 50% { transform: scaleY(1); } }
+@keyframes v-spin { to { transform: rotate(360deg); } }
+@keyframes v-sheen { from { background-position: -200% 0; } to { background-position: 200% 0; } }
+@keyframes v-fadein { from { opacity: 0; } to { opacity: 1; } }
+@keyframes v-rise { from { transform: translateY(16px) scale(0.98); } to { transform: none; } }

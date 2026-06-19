@@ -1,0 +1,25 @@
+<!-- @dsCard group="Colors" viewport="700x150" name="Canvas & Surfaces" subtitle="Near-black canvas + translucent glass overlays" -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<link rel="stylesheet" href="../styles.css" />
+<style>
+  body { margin: 0; font-family: var(--font-sans); background: var(--bg); color: var(--fg); }
+  .wrap { display: flex; gap: 14px; padding: 20px; flex-wrap: wrap; }
+  .sw { display: flex; flex-direction: column; gap: 8px; }
+  .chip { width: 120px; height: 64px; border-radius: var(--radius-lg); border: 1px solid var(--border); }
+  .name { font-size: 12px; font-weight: 600; }
+  .val { font-size: 11px; color: var(--fg-3); font-variant-numeric: tabular-nums; }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="sw"><div class="chip" style="background:var(--bg)"></div><div class="name">--bg</div><div class="val">#07070f</div></div>
+    <div class="sw"><div class="chip" style="background:var(--bg-sidebar)"></div><div class="name">--bg-sidebar</div><div class="val">#0a0a15</div></div>
+    <div class="sw"><div class="chip" style="background:var(--surface)"></div><div class="name">--surface</div><div class="val">white 6%</div></div>
+    <div class="sw"><div class="chip" style="background:var(--surface-hover)"></div><div class="name">--surface-hover</div><div class="val">white 9%</div></div>
+    <div class="sw"><div class="chip" style="background:var(--glass)"></div><div class="name">--glass</div><div class="val">white 4%</div></div>
+  </div>
+</body>
+</html>
