@@ -1,7 +1,23 @@
 @import "tailwindcss";
 
+@font-face {
+  font-family: "Inter Variable";
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url("/fonts/InterVariable.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Inter Variable";
+  font-style: italic;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url("/fonts/InterVariable-Italic.woff2") format("woff2");
+}
+
 @theme {
-  --font-sans: var(--font-inter, "Inter"), system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-sans: "Inter Variable", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 }
 
 /* ─── V2 design tokens — dark (default) ─────────────────────── */
@@ -84,7 +100,7 @@
 
 /* ─── V2 shared constants (theme-independent) ────────────────── */
 :root {
-  --v-font: var(--font-inter, "Inter"), system-ui, -apple-system, "Segoe UI", sans-serif;
+  --v-font: "Inter Variable", system-ui, -apple-system, "Segoe UI", sans-serif;
   --v-r-sm: 10px;
   --v-r-md: 14px;
   --v-r-lg: 20px;
@@ -128,7 +144,7 @@ html {
 body {
   background: var(--bg);
   color: var(--fg);
-  font-family: var(--font-inter, "Inter"), system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-family: "Inter Variable", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   font-synthesis: none;
   overscroll-behavior: none;
 }
