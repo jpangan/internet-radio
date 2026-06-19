@@ -17,9 +17,9 @@
   --v-hairline: rgba(255,255,255,0.08);
   --v-hairline-2: rgba(255,255,255,0.14);
   /* Glass materials */
-  --v-mat-fill: rgba(16,16,24,0.62);
-  --v-mat-blur: blur(40px) saturate(180%);
-  --v-mat-chrome: rgba(10,10,16,0.72);
+  --v-mat-fill: rgba(16,16,24,0.55);
+  --v-mat-blur: blur(60px) saturate(200%);
+  --v-mat-chrome: rgba(8,8,13,0.78);
   /* Text */
   --v-fg: #ffffff;
   --v-fg-2: rgba(255,255,255,0.62);
@@ -46,9 +46,9 @@
   --v-elev-3: rgba(0,0,0,0.08);
   --v-hairline: rgba(0,0,0,0.08);
   --v-hairline-2: rgba(0,0,0,0.14);
-  --v-mat-fill: rgba(255,255,255,0.7);
-  --v-mat-blur: blur(40px) saturate(180%);
-  --v-mat-chrome: rgba(255,255,255,0.78);
+  --v-mat-fill: rgba(255,255,255,0.6);
+  --v-mat-blur: blur(60px) saturate(200%);
+  --v-mat-chrome: rgba(244,244,247,0.82);
   --v-fg: #14141a;
   --v-fg-2: rgba(20,20,26,0.62);
   --v-fg-3: rgba(20,20,26,0.42);

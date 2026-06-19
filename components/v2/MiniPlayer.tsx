@@ -23,8 +23,8 @@ export default function MiniPlayer({ station, onNext, onExpand, isFav, onFav }: 
       style={{
         display: "flex", alignItems: "center", gap: 12, padding: "10px 12px", cursor: "pointer",
         borderTop: "1px solid var(--v-hairline)",
-        background: "var(--v-mat-chrome)", backdropFilter: "var(--v-mat-blur)",
-        WebkitBackdropFilter: "var(--v-mat-blur)",
+        background: "var(--v-bg-2)",
+        backdropFilter: "var(--v-mat-blur)", WebkitBackdropFilter: "var(--v-mat-blur)",
       }}
     >
       <Cover station={station} size={48} radius="10px" showInitials playing={isPlaying} />

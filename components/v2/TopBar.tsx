@@ -10,7 +10,7 @@ export default function TopBar({ title, onBack }: TopBarProps) {
     <div style={{
       position: "sticky", top: 0, zIndex: 20, display: "flex", alignItems: "center", gap: 14,
       padding: "16px 4px",
-      background: "linear-gradient(var(--v-bg) 60%, transparent)",
+      background: "var(--v-bg)",
     }}>
       {onBack && (
         <button

@@ -48,8 +48,8 @@ export default function MobileNav({ view, onNav, favCount }: MobileNavProps) {
   return (
     <nav style={{
       display: "flex", borderTop: "1px solid var(--v-hairline)",
-      background: "var(--v-mat-chrome)", backdropFilter: "var(--v-mat-blur)",
-      WebkitBackdropFilter: "var(--v-mat-blur)",
+      background: "var(--v-bg-2)",
+      backdropFilter: "var(--v-mat-blur)", WebkitBackdropFilter: "var(--v-mat-blur)",
       padding: "8px 8px max(8px, env(safe-area-inset-bottom))",
     }}>
       {NAV.map((n) => {
