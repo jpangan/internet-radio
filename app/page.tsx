@@ -9,6 +9,7 @@ import ThemeToggle from "@/components/v2/ThemeToggle";
 import MiniPlayer from "@/components/v2/MiniPlayer";
 import NowPlaying from "@/components/v2/NowPlaying";
 import ShareSheet from "@/components/v2/ShareSheet";
+import Toast, { type ToastMessage } from "@/components/v2/Toast";
 import HomeView from "@/components/v2/HomeView";
 import SearchView from "@/components/v2/SearchView";
 import BrowseView from "@/components/v2/BrowseView";
@@ -53,6 +54,8 @@ export default function App() {
   const [favorites, setFavorites] = useState<Station[]>([]);
   const [isPlaying, setIsPlaying] = useState(false);
   const [pendingUuid, setPendingUuid] = useState<string | null>(null);
+  const [toasts, setToasts] = useState<ToastMessage[]>([]);
+  const toastId = useRef(0);
 
   // Responsive: observe host width
   useEffect(() => {
@@ -155,6 +158,11 @@ export default function App() {
 
   const isFav = currentStation ? favorites.some((f) => f.stationuuid === currentStation.stationuuid) : false;
 
+  const showToast = useCallback((text: string, type: ToastMessage["type"]) => {
+    const id = ++toastId.current;
+    setToasts((prev) => [...prev, { id, text, type }]);
+  }, []);
+
   const handleToggleFav = useCallback(() => {
     if (!currentStation) return;
     const already = favorites.some((f) => f.stationuuid === currentStation.stationuuid);
@@ -164,9 +172,14 @@ export default function App() {
     setFavorites(next);
     localStorage.setItem(FAVORITES_KEY, JSON.stringify(next));
     const countryObj: Country = { name: currentStation.country, stationcount: 0, iso_3166_1: currentStation.countrycode ?? "" };
-    if (already) trackFavoriteRemoved(currentStation, countryObj);
-    else trackFavoriteAdded(currentStation, countryObj);
-  }, [currentStation, favorites]);
+    if (already) {
+      trackFavoriteRemoved(currentStation, countryObj);
+      showToast(`${currentStation.name} removed from your library`, "removed");
+    } else {
+      trackFavoriteAdded(currentStation, countryObj);
+      showToast(`${currentStation.name} added to your library`, "added");
+    }
+  }, [currentStation, favorites, showToast]);
 
   const handleRemoveFav = useCallback((s: Station) => {
     const next = favorites.filter((f) => f.stationuuid !== s.stationuuid);
@@ -218,8 +231,10 @@ export default function App() {
           {compact && (
             <div style={{
               display: "flex", alignItems: "center", justifyContent: "space-between",
-              padding: "max(16px, env(safe-area-inset-top)) 18px 6px",
+              padding: "max(env(safe-area-inset-top), 14px) 18px 10px",
               background: "var(--v-bg)",
+              borderBottom: "1px solid var(--v-hairline)",
+              flexShrink: 0, zIndex: 30, position: "relative",
             }}>
               <Logo />
               <ThemeToggle />
@@ -235,7 +250,7 @@ export default function App() {
               : (compact ? 80 : 28),
           }}>
             <div style={{ maxWidth: 1180, margin: "0 auto" }}>
-              {view === "home" && <HomeView {...viewProps} />}
+              {view === "home" && <HomeView {...viewProps} compact={compact} />}
               {view === "search" && <SearchView {...viewProps} />}
               {view === "browse" && <BrowseView {...viewProps} />}
               {view === "library" && (
@@ -277,6 +292,9 @@ export default function App() {
           onFav={handleToggleFav}
           onShare={handleShare}
         />
+
+        {/* Toast notifications */}
+        <Toast messages={toasts} onDismiss={(id) => setToasts((prev) => prev.filter((t) => t.id !== id))} />
 
         {/* Share sheet */}
         <ShareSheet
