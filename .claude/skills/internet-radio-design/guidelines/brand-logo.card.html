@@ -1,0 +1,32 @@
+<!-- @dsCard group="Brand" viewport="700x240" name="App Icon & Favicon" subtitle="Broadcast-ripple mark on the violet squircle; favicon tuned for 16–32px" -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<link rel="stylesheet" href="../styles.css" />
+<style>
+  body { margin: 0; font-family: var(--font-sans); color: var(--fg);
+    background: var(--bg) var(--gradient-bg-glow); }
+  .wrap { padding: 30px; display: flex; gap: 40px; align-items: center; flex-wrap: wrap; }
+  .lockup { display: flex; align-items: center; gap: 14px; }
+  .word .t { font-size: 22px; font-weight: 700; letter-spacing: -0.02em; }
+  .word .s { font-size: 12px; color: var(--fg-3); margin-top: 4px; }
+  .sizes { display: flex; align-items: flex-end; gap: 22px; }
+  .chip { display: flex; flex-direction: column; align-items: center; gap: 8px; font-size: 10px; color: var(--fg-3); }
+  img { display: block; }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="lockup">
+      <img src="../assets/app-icon.svg" width="84" height="84" alt="Internet Radio app icon" />
+      <div class="word"><div class="t">Internet Radio</div><div class="s">Stream the world</div></div>
+    </div>
+    <div class="sizes">
+      <div class="chip"><img src="../assets/app-icon.svg" width="64" height="64" alt="" />64</div>
+      <div class="chip"><img src="../assets/favicon.svg" width="32" height="32" alt="" />32</div>
+      <div class="chip"><img src="../assets/favicon.svg" width="16" height="16" alt="" />16</div>
+    </div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,26 @@
+<!-- @dsCard group="Spacing" viewport="700x140" name="Spacing Grid" subtitle="4px base grid — compact, mobile-first density" -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<link rel="stylesheet" href="../styles.css" />
+<style>
+  body { margin: 0; font-family: var(--font-sans); background: var(--bg); color: var(--fg); }
+  .wrap { padding: 24px; display: flex; gap: 16px; align-items: flex-end; }
+  .sw { display: flex; flex-direction: column; gap: 8px; align-items: center; }
+  .bar { width: 100%; background: var(--accent); border-radius: 3px; }
+  .lab { font-size: 10px; color: var(--fg-3); font-variant-numeric: tabular-nums; }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="sw"><div class="bar" style="height:var(--space-1);width:var(--space-1)"></div><div class="lab">1·4</div></div>
+    <div class="sw"><div class="bar" style="height:var(--space-2);width:var(--space-2)"></div><div class="lab">2·8</div></div>
+    <div class="sw"><div class="bar" style="height:var(--space-3);width:var(--space-3)"></div><div class="lab">3·12</div></div>
+    <div class="sw"><div class="bar" style="height:var(--space-4);width:var(--space-4)"></div><div class="lab">4·16</div></div>
+    <div class="sw"><div class="bar" style="height:var(--space-6);width:var(--space-6)"></div><div class="lab">6·24</div></div>
+    <div class="sw"><div class="bar" style="height:var(--space-8);width:var(--space-8)"></div><div class="lab">8·32</div></div>
+    <div class="sw"><div class="bar" style="height:var(--space-12);width:var(--space-12)"></div><div class="lab">12·48</div></div>
+  </div>
+</body>
+</html>

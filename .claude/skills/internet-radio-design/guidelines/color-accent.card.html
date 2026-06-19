@@ -1,0 +1,25 @@
+<!-- @dsCard group="Colors" viewport="700x160" name="Accent — Violet" subtitle="The single brand hue, plus glows and soft tints" -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<link rel="stylesheet" href="../styles.css" />
+<style>
+  body { margin: 0; font-family: var(--font-sans); background: var(--bg); color: var(--fg); }
+  .wrap { display: flex; gap: 14px; padding: 20px; flex-wrap: wrap; align-items: flex-start; }
+  .sw { display: flex; flex-direction: column; gap: 8px; }
+  .chip { width: 120px; height: 64px; border-radius: var(--radius-lg); }
+  .name { font-size: 12px; font-weight: 600; }
+  .val { font-size: 11px; color: var(--fg-3); }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="sw"><div class="chip" style="background:var(--accent)"></div><div class="name">--accent</div><div class="val">#7c6cf0</div></div>
+    <div class="sw"><div class="chip" style="background:var(--accent-hover)"></div><div class="name">--accent-hover</div><div class="val">#9488f5</div></div>
+    <div class="sw"><div class="chip" style="background:var(--accent-deep)"></div><div class="name">--accent-deep</div><div class="val">#6c5ce7</div></div>
+    <div class="sw"><div class="chip" style="background:var(--gradient-accent)"></div><div class="name">--gradient-accent</div><div class="val">135° hover→base</div></div>
+    <div class="sw"><div class="chip" style="background:var(--accent-soft);border:1px solid var(--accent-ring)"></div><div class="name">--accent-soft</div><div class="val">violet 14%</div></div>
+  </div>
+</body>
+</html>

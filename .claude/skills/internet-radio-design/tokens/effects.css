@@ -1,0 +1,58 @@
+/* ── Effects: glass, shadows, glows ────────────────────────────
+   The signature look. Glass = translucent fill + backdrop blur+saturate.
+   Elevation comes from glow (accent) and deep soft black shadows, not
+   crisp drop shadows. */
+:root {
+  /* Glass blur recipes (apply with backdrop-filter) */
+  --blur-glass: blur(20px) saturate(180%); /* @kind other */
+  --blur-panel: blur(24px) saturate(160%); /* @kind other */
+  --blur-strong: blur(32px) saturate(200%); /* @kind other */
+  --blur-sheet: blur(40px) saturate(200%); /* @kind other */
+  --blur-overlay: blur(6px); /* @kind other */
+
+  /* Glass surface fills (pair with the blurs above) */
+  --glass-fill: rgba(255, 255, 255, 0.04); /* @kind color */
+  --glass-panel-fill: rgba(7, 7, 15, 0.8); /* @kind color */
+  --glass-strong-fill: rgba(14, 14, 28, 0.9); /* @kind color */
+
+  /* Scrim for modal overlays */
+  --scrim: rgba(0, 0, 0, 0.65); /* @kind color */
+  --scrim-strong: rgba(0, 0, 0, 0.72); /* @kind color */
+
+  /* Shadows */
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 4px 24px rgba(0, 0, 0, 0.4);
+  --shadow-sheet: 0 -8px 80px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.06);
+
+  /* Accent glows (purple) */
+  --glow-accent-sm: 0 4px 24px rgba(124, 108, 240, 0.45);
+  --glow-accent-md: 0 4px 28px rgba(124, 108, 240, 0.5);
+  --glow-accent-lg: 0 6px 36px rgba(124, 108, 240, 0.65);
+
+  /* Artwork glow — the now-playing halo */
+  --shadow-artwork: 0 0 0 1px var(--accent-ring), 0 8px 60px var(--accent-glow), 0 24px 80px rgba(0, 0, 0, 0.5);
+
+  /* Focus ring */
+  --focus-ring: 0 0 0 3px rgba(124, 108, 240, 0.15);
+  --focus-border: rgba(124, 108, 240, 0.6); /* @kind color */
+}
+
+/* Reusable glass utility classes (mirror the app's globals.css) */
+.glass {
+  background: var(--glass-fill);
+  backdrop-filter: var(--blur-glass);
+  -webkit-backdrop-filter: var(--blur-glass);
+}
+.glass-panel {
+  background: var(--glass-panel-fill);
+  backdrop-filter: var(--blur-panel);
+  -webkit-backdrop-filter: var(--blur-panel);
+}
+.glass-strong {
+  background: var(--glass-strong-fill);
+  backdrop-filter: var(--blur-strong);
+  -webkit-backdrop-filter: var(--blur-strong);
+}
+.artwork-glow {
+  box-shadow: var(--shadow-artwork);
+}

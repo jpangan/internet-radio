@@ -1,0 +1,24 @@
+<!-- @dsCard group="Spacing" viewport="700x230" name="Glass, Glow & Shadow" subtitle="Backdrop-blurred surfaces; elevation from glow, not crisp shadows" -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<link rel="stylesheet" href="../styles.css" />
+<style>
+  body { margin: 0; font-family: var(--font-sans); color: var(--fg);
+    background: var(--bg) var(--gradient-bg-glow); }
+  .wrap { padding: 26px; display: flex; gap: 20px; flex-wrap: wrap; align-items: center; }
+  .demo { width: 150px; height: 96px; border-radius: var(--radius-2xl); display: flex; align-items: flex-end; padding: 12px; box-sizing: border-box; font-size: 11px; color: var(--fg-2); }
+  .glassbox { background: var(--glass-strong-fill); backdrop-filter: var(--blur-strong); border: 1px solid var(--border); }
+  .glow { background: var(--gradient-accent); box-shadow: var(--glow-accent-md); color: #fff; }
+  .art { background: var(--surface); box-shadow: var(--shadow-artwork); }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="demo glassbox">glass-strong</div>
+    <div class="demo glow">accent glow</div>
+    <div class="demo art">artwork halo</div>
+  </div>
+</body>
+</html>

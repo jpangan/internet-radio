@@ -16,6 +16,7 @@ export interface Station {
   favicon: string;
   tags: string;
   country: string;
+  countrycode?: string;
   language: string;
   votes: number;
   codec: string;

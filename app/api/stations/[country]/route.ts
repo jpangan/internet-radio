@@ -7,15 +7,16 @@ export async function GET(
 ) {
   const { country } = await params;
   const decoded = decodeURIComponent(country);
-  // ISO-2 codes are always exactly 2 uppercase letters; no country name is that short
+  // ISO-2 codes are always exactly 2 uppercase letters; "_" is the global-search sentinel
   const isIso = /^[A-Z]{2}$/.test(decoded);
+  const isGlobal = decoded === "_";
   const { searchParams } = new URL(request.url);
   const offset = parseInt(searchParams.get("offset") ?? "0", 10);
   const name = searchParams.get("name") ?? "";
   try {
     const stations = await fetchStationsByCountry(
-      isIso ? decoded : "",
-      isIso ? undefined : decoded,
+      isGlobal ? "" : (isIso ? decoded : ""),
+      isGlobal ? undefined : (isIso ? undefined : decoded),
       offset,
       name
     );

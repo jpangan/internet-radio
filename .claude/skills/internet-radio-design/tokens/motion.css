@@ -1,0 +1,50 @@
+/* ── Motion ────────────────────────────────────────────────────
+   Quick, soft, springy. Modal sheets rise with a custom easing;
+   overlays cross-fade. Live elements pulse gently. */
+:root {
+  --ease-out: ease; /* @kind other */
+  --ease-sheet: cubic-bezier(0.32, 0.72, 0, 1); /* @kind other */ /* sheet up, overshoot-free spring */
+  --ease-sheet-out: cubic-bezier(0.4, 0, 1, 1); /* @kind other */ /* sheet down */
+
+  --dur-fast: 0.22s; /* @kind other */
+  --dur-base: 0.3s; /* @kind other */
+  --dur-slow: 0.5s; /* @kind other */
+
+  --press-scale: 0.95; /* @kind other */ /* active:scale-95 on tappable controls */
+}
+
+@keyframes overlay-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes overlay-out { from { opacity: 1; } to { opacity: 0; } }
+@keyframes sheet-up {
+  from { opacity: 0; transform: translateY(32px) scale(0.97); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes sheet-down {
+  from { opacity: 1; transform: translateY(0) scale(1); }
+  to { opacity: 0; transform: translateY(32px) scale(0.97); }
+}
+@keyframes artwork-pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 1px var(--accent-ring), 0 0 38px rgba(124,108,240,0.28),
+      0 8px 60px var(--accent-glow), 0 24px 80px rgba(0,0,0,0.5);
+  }
+  50% {
+    box-shadow: 0 0 0 1px var(--accent-ring), 0 0 90px rgba(124,108,240,0.65),
+      0 0 140px rgba(148,136,245,0.2), 0 8px 60px var(--accent-glow), 0 24px 80px rgba(0,0,0,0.5);
+  }
+}
+@keyframes connecting-dot {
+  0%, 60%, 100% { transform: scaleY(0.4); opacity: 0.3; }
+  30% { transform: scaleY(1); opacity: 1; }
+}
+@keyframes viz-bar {
+  0%   { transform: scaleY(0.1); }
+  100% { transform: scaleY(1); }
+}
+
+.modal-overlay { animation: overlay-in var(--dur-fast) var(--ease-out) forwards; }
+.modal-overlay-out { animation: overlay-out 0.24s var(--ease-out) forwards; }
+.modal-sheet { animation: sheet-up var(--dur-base) var(--ease-sheet) forwards; }
+.modal-sheet-down { animation: sheet-down 0.24s var(--ease-sheet-out) forwards; }
+.artwork-pulse { animation: artwork-pulse 1.7s ease-in-out infinite; }
+.connecting-dot { animation: connecting-dot 1.2s ease-in-out infinite; transform-origin: center; }

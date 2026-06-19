@@ -1,0 +1,62 @@
+/* ── Color system ──────────────────────────────────────────────
+   A dark, near-black canvas with a single violet accent. Surfaces are
+   built from translucent white overlays (glass), not solid greys, so
+   the background gradient shows through. Lifted verbatim from the app's
+   globals.css and extended with semantic aliases. */
+:root {
+  /* Canvas */
+  --bg: #07070f;            /* app background — near-black with a blue cast */
+  --bg-sidebar: #0a0a15;    /* very slightly lifted panel base */
+  --bg-sheet: rgba(10, 10, 20, 0.97); /* modal sheet base */
+
+  /* Translucent surfaces (overlay white on the canvas) */
+  --glass: rgba(255, 255, 255, 0.04);
+  --glass-hover: rgba(255, 255, 255, 0.08);
+  --surface: rgba(255, 255, 255, 0.06);
+  --surface-hover: rgba(255, 255, 255, 0.09);
+
+  /* Borders / hairlines */
+  --border: rgba(255, 255, 255, 0.09);
+  --border-subtle: rgba(255, 255, 255, 0.06);
+  --border-strong: rgba(255, 255, 255, 0.16);
+
+  /* Accent — violet */
+  --accent: #7c6cf0;
+  --accent-hover: #9488f5;
+  --accent-deep: #6c5ce7;   /* gradient end / logo */
+  --accent-glow: rgba(124, 108, 240, 0.4);
+  --accent-soft: rgba(124, 108, 240, 0.14);
+  --accent-ring: rgba(124, 108, 240, 0.3);
+
+  /* Text on dark */
+  --fg: #ffffff;
+  --fg-2: rgba(255, 255, 255, 0.55);  /* secondary / metadata */
+  --fg-3: rgba(255, 255, 255, 0.3);   /* tertiary / captions, counts */
+  --fg-4: rgba(255, 255, 255, 0.2);   /* faint hints */
+
+  /* Semantic / status */
+  --live: #34d399;                       /* "Live" badge green */
+  --live-soft: rgba(52, 211, 153, 0.12);
+  --live-border: rgba(52, 211, 153, 0.2);
+  --fav: #fb7185;                        /* favorite / heart rose */
+  --fav-soft: rgba(251, 113, 133, 0.12);
+  --fav-border: rgba(251, 113, 133, 0.3);
+  --danger: #ef4444;
+  --danger-soft: rgba(239, 68, 68, 0.1);
+  --danger-text: #fca5a5;
+  --success: #34c759;
+
+  /* Semantic aliases (use these in components) */
+  --text-primary: var(--fg);
+  --text-secondary: var(--fg-2);
+  --text-tertiary: var(--fg-3);
+  --surface-card: var(--surface);
+  --surface-raised: var(--surface-hover);
+  --gradient-accent: linear-gradient(135deg, #9488f5, #7c6cf0); /* @kind color */
+  --gradient-logo: linear-gradient(135deg, #9488f5 0%, #6c5ce7 100%); /* @kind color */
+  --gradient-bg-glow: radial-gradient(ellipse 100% 60% at 50% -5%, rgba(124, 108, 240, 0.13), transparent 65%); /* @kind color */
+
+  /* PWA safe areas */
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-top: env(safe-area-inset-top, 0px);
+}
