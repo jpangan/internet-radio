@@ -20,7 +20,7 @@ const inter = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "Internet Radio",
+  title: "GhostRadio",
   description: "Stream radio stations from around the world",
   manifest: "/manifest.json",
   icons: {
@@ -37,7 +37,7 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "Internet Radio",
+    title: "GhostRadio",
   },
   formatDetection: {
     telephone: false,

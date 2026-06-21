@@ -207,7 +207,7 @@ export default function AudioEngine({
     navigator.mediaSession.metadata = new MediaMetadata({
       title: station.name,
       artist: [station.country, station.language].filter(Boolean).join(" · "),
-      album: "Internet Radio",
+      album: "GhostRadio",
       artwork: station.favicon
         ? [{ src: station.favicon, sizes: "96x96", type: "image/png" }]
         : [

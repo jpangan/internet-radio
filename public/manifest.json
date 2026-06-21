@@ -1,6 +1,6 @@
 {
-  "name": "Internet Radio",
-  "short_name": "Radio",
+  "name": "GhostRadio",
+  "short_name": "GhostRadio",
   "description": "Stream radio stations from around the world",
   "start_url": "/",
   "id": "/",

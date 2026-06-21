@@ -1,4 +1,4 @@
-# Internet Radio
+# GhostRadio
 
 A full-stack internet radio streaming web app built with Next.js, TypeScript, and Tailwind CSS. Browse stations by country and stream live radio using the [Radio Browser API](https://www.radio-browser.info/).
 

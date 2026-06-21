@@ -100,7 +100,7 @@ export default function Explorer({
           </div>
           <div>
             <h1 className="text-sm font-semibold leading-tight">
-              Internet Radio
+              GhostRadio
             </h1>
             <p className="text-[11px] text-[var(--muted)]">
               Browse worldwide stations

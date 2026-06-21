@@ -4,7 +4,7 @@ export default function Logo({ compact }: { compact?: boolean }) {
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src="/app-icon.svg"
-        alt="Internet Radio"
+        alt="GhostRadio"
         width={34}
         height={34}
         style={{
@@ -14,7 +14,7 @@ export default function Logo({ compact }: { compact?: boolean }) {
       />
       {!compact && (
         <span style={{ fontSize: 16, fontWeight: 750, letterSpacing: "-0.02em", color: "var(--v-fg)" }}>
-          Internet Radio
+          GhostRadio
         </span>
       )}
     </div>
