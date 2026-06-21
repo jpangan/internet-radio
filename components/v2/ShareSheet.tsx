@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { gradientFor, initials } from "@/lib/cover";
 import { parseTags } from "@/lib/utils";
+import { trackLinkCopied } from "@/lib/analytics";
 import type { Station } from "@/lib/types";
 import QRCode from "react-qr-code";
 
@@ -29,6 +30,7 @@ export default function ShareSheet({ open, station, onClose, url }: ShareSheetPr
   const prettyUrl = url.replace(/^https?:\/\//, "");
 
   const copyLink = async () => {
+    trackLinkCopied(station);
     try {
       await navigator.clipboard.writeText(url);
       setCopied(true);

@@ -5,6 +5,7 @@ import TopBar from "./TopBar";
 import CountryCard from "./CountryCard";
 import ListRow from "./ListRow";
 import { useCountries, useInfiniteStations } from "@/lib/queries";
+import { trackCountryBrowsed, trackLoadMore } from "@/lib/analytics";
 import type { Country, Station } from "@/lib/types";
 import FlagIcon from "@/components/FlagIcon";
 
@@ -52,7 +53,7 @@ function CountryDrill({ country, current, playing, onPlay, onOpen, onBack }: {
       {hasNextPage && (
         <button
           type="button"
-          onClick={() => fetchNextPage()}
+          onClick={() => { fetchNextPage(); trackLoadMore({ kind: "country", label: country.name, page: (data?.pages.length ?? 0) + 1 }); }}
           disabled={isFetchingNextPage}
           style={{
             display: "block", width: "100%", margin: "16px 0 8px",

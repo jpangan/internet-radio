@@ -7,6 +7,12 @@ import { useAudioState, useAudioControls } from "@/lib/audio-context";
 import { gradientFor, coverHash } from "@/lib/cover";
 import { parseTags } from "@/lib/utils";
 import FlagIcon from "@/components/FlagIcon";
+import {
+  trackNowPlayingClosed,
+  trackMuteToggled,
+  trackVolumeChanged,
+  trackStreamRetried,
+} from "@/lib/analytics";
 import type { Station } from "@/lib/types";
 
 const WAVEFORM_BARS = 64;
@@ -29,6 +35,7 @@ export default function NowPlaying({ station, open, onClose, onNext, onPrev, isF
   const scrollRef = useRef<HTMLDivElement>(null);
   const controlsRef = useRef<HTMLDivElement>(null);
   const dragStart = useRef<{ y: number; armed: boolean } | null>(null);
+  const volTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [px, setPx] = useState({ x: 0, y: 0 });
   const [dragY, setDragY] = useState(0);
   const [dragging, setDragging] = useState(false);
@@ -88,8 +95,17 @@ export default function NowPlaying({ station, open, onClose, onNext, onPrev, isF
     dragStart.current = null;
     if (!dragging) return;
     setDragging(false);
-    if (dragY > CLOSE_THRESHOLD) onClose();
+    if (dragY > CLOSE_THRESHOLD) { trackNowPlayingClosed(station, "swipe"); onClose(); }
     else setDragY(0);
+  };
+
+  const closeViaButton = () => { trackNowPlayingClosed(station, "button"); onClose(); };
+  const handleMute = () => { trackMuteToggled(station, !isMuted); toggleMute(); };
+  const handleRetry = () => { trackStreamRetried(station); retry(); };
+  const handleVolume = (v: number) => {
+    setVolume(v);
+    if (volTimer.current) clearTimeout(volTimer.current);
+    volTimer.current = setTimeout(() => trackVolumeChanged(station, v), 600);
   };
 
   return (
@@ -131,7 +147,7 @@ export default function NowPlaying({ station, open, onClose, onNext, onPrev, isF
       }}>
         {/* Top bar */}
         <div style={{ width: "100%", maxWidth: 520, display: "flex", alignItems: "center", justifyContent: "space-between", color: "#fff" }}>
-          <button type="button" onClick={onClose} aria-label="Collapse"
+          <button type="button" onClick={closeViaButton} aria-label="Collapse"
             style={{ width: 40, height: 40, borderRadius: 99, border: "none", cursor: "pointer", background: "rgba(255,255,255,0.16)", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", backdropFilter: "blur(8px)" }}>
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round">
               <path d="M6 9l6 6 6-6"/>
@@ -171,7 +187,7 @@ export default function NowPlaying({ station, open, onClose, onNext, onPrev, isF
                 display: "flex", alignItems: "center", gap: 10,
               }}>
                 <span style={{ fontSize: 13, color: "#fca5a5", flex: 1 }}>{error}</span>
-                <button type="button" onClick={retry} style={{
+                <button type="button" onClick={handleRetry} style={{
                   padding: "4px 12px", borderRadius: 8, border: "none", cursor: "pointer",
                   background: "rgba(255,255,255,0.1)", color: "#fff", fontSize: 12, fontWeight: 600,
                 }}>Retry</button>
@@ -251,7 +267,7 @@ export default function NowPlaying({ station, open, onClose, onNext, onPrev, isF
 
             {/* Volume */}
             <div style={{ marginTop: 24, display: "flex", alignItems: "center", gap: 12, maxWidth: 360, margin: "24px auto 8px", color: "#fff" }}>
-              <button type="button" onClick={toggleMute} aria-label={isMuted ? "Unmute" : "Mute"}
+              <button type="button" onClick={handleMute} aria-label={isMuted ? "Unmute" : "Mute"}
                 style={{ border: "none", background: "transparent", cursor: "pointer", color: "#fff", opacity: 0.8, display: "inline-flex" }}>
                 {isMuted || effectiveVolume === 0 ? (
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
@@ -266,7 +282,7 @@ export default function NowPlaying({ station, open, onClose, onNext, onPrev, isF
               <input
                 type="range" min={0} max={1} step={0.01}
                 value={effectiveVolume}
-                onChange={(e) => setVolume(parseFloat(e.target.value))}
+                onChange={(e) => handleVolume(parseFloat(e.target.value))}
                 aria-label="Volume"
                 className="v-range-light"
                 style={{ flex: 1, height: 4 }}

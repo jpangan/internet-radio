@@ -1,11 +1,17 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import TopBar from "./TopBar";
 import CountryCard from "./CountryCard";
 import GenreTile, { GENRES } from "./GenreTile";
 import ListRow from "./ListRow";
 import { useCountries, useInfiniteStations } from "@/lib/queries";
+import {
+  trackStationSearched,
+  trackGenreSelected,
+  trackCountryBrowsed,
+  trackLoadMore,
+} from "@/lib/analytics";
 import type { Country, Station } from "@/lib/types";
 import FlagIcon from "@/components/FlagIcon";
 
@@ -53,7 +59,7 @@ function CountryDrill({ country, current, playing, onPlay, onOpen, onBack }: {
       {hasNextPage && (
         <button
           type="button"
-          onClick={() => fetchNextPage()}
+          onClick={() => { fetchNextPage(); trackLoadMore({ kind: "country", label: country.name, page: (data?.pages.length ?? 0) + 1 }); }}
           disabled={isFetchingNextPage}
           style={{
             display: "block", width: "100%", margin: "16px 0 8px",
@@ -89,8 +95,25 @@ export default function SearchView({ current, playing, onPlay, onOpen }: SearchV
     ? countries.filter((c) => c.name.toLowerCase().includes(q.trim().toLowerCase()))
     : [];
 
+  // Track searches once they settle (debounced), reading the latest result
+  // count via a ref so paginating later doesn't re-fire the event.
+  const resultCountRef = useRef(0);
+  resultCountRef.current = searchResults.length;
+  useEffect(() => {
+    const query = q.trim();
+    if (!query) return;
+    const t = setTimeout(() => trackStationSearched(query, resultCountRef.current), 800);
+    return () => clearTimeout(t);
+  }, [q]);
+
   const handleGenre = useCallback((tag: string) => {
+    trackGenreSelected(tag);
     setQ(tag);
+  }, []);
+
+  const handleSelectCountry = useCallback((c: Country) => {
+    setSelectedCountry(c);
+    trackCountryBrowsed(c, "search");
   }, []);
 
   if (selectedCountry) {
@@ -138,7 +161,7 @@ export default function SearchView({ current, playing, onPlay, onOpen }: SearchV
                 <div style={{ fontSize: 13, fontWeight: 600, color: "var(--v-fg-3)", margin: "0 4px 8px" }}>Countries</div>
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 10 }}>
                   {countryMatches.slice(0, 6).map((c) => (
-                    <CountryCard key={c.iso_3166_1} country={c} onClick={() => setSelectedCountry(c)} />
+                    <CountryCard key={c.iso_3166_1} country={c} onClick={() => handleSelectCountry(c)} />
                   ))}
                 </div>
               </div>
@@ -159,7 +182,7 @@ export default function SearchView({ current, playing, onPlay, onOpen }: SearchV
                 {searchHasNextPage && (
                   <button
                     type="button"
-                    onClick={() => searchFetchNextPage()}
+                    onClick={() => { searchFetchNextPage(); trackLoadMore({ kind: "search", label: q.trim(), page: (searchData?.pages.length ?? 0) + 1 }); }}
                     disabled={searchIsFetchingNextPage}
                     style={{
                       display: "block", width: "100%", margin: "16px 0 8px",
@@ -191,7 +214,7 @@ export default function SearchView({ current, playing, onPlay, onOpen }: SearchV
           </h2>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 10, marginBottom: 30 }}>
             {(countries ?? []).map((c) => (
-              <CountryCard key={c.iso_3166_1} country={c} onClick={() => setSelectedCountry(c)} />
+              <CountryCard key={c.iso_3166_1} country={c} onClick={() => handleSelectCountry(c)} />
             ))}
           </div>
 

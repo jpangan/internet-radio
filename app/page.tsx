@@ -21,6 +21,9 @@ import {
   trackFavoriteAdded,
   trackFavoriteRemoved,
   trackStationShared,
+  trackNowPlayingOpened,
+  trackViewChanged,
+  trackSharedLinkOpened,
 } from "@/lib/analytics";
 import type { Country, Station } from "@/lib/types";
 
@@ -77,6 +80,7 @@ export default function App() {
     const countryParam = params.get("country");
     const stationParam = params.get("station");
     if (!countryParam || !stationParam) return;
+    trackSharedLinkOpened({ country: countryParam, station_uuid: stationParam });
     history.replaceState(null, "", window.location.pathname);
     queryClient.fetchQuery({ queryKey: queryKeys.countries, queryFn: fetchCountriesApi }).then((countries: Country[]) => {
       const found = countries.find((c) => c.iso_3166_1 === countryParam || c.name.toLowerCase() === countryParam.toLowerCase());
@@ -98,6 +102,7 @@ export default function App() {
         setPlayContext([station]);
         setNpOpen(true);
         localStorage.setItem(STATION_KEY, JSON.stringify(station));
+        trackNowPlayingOpened(station, "shared_link");
       })
       .catch(() => {});
   }, [pendingUuid]);
@@ -120,8 +125,8 @@ export default function App() {
     setCurrentStation(s);
     setPlayContext(list);
     localStorage.setItem(STATION_KEY, JSON.stringify(s));
-    trackStationSelected(s, { name: s.country, stationcount: 0, iso_3166_1: s.countrycode ?? "" });
-  }, []);
+    trackStationSelected(s, view);
+  }, [view]);
 
   // Open now-playing and start playing
   const handleOpen = useCallback((s: Station, list: Station[]) => {
@@ -129,8 +134,9 @@ export default function App() {
     setPlayContext(list);
     setNpOpen(true);
     localStorage.setItem(STATION_KEY, JSON.stringify(s));
-    trackStationSelected(s, { name: s.country, stationcount: 0, iso_3166_1: s.countrycode ?? "" });
-  }, []);
+    trackStationSelected(s, view);
+    trackNowPlayingOpened(s, view);
+  }, [view]);
 
   const currentIndex = currentStation && playContext.length > 0
     ? playContext.findIndex((s) => s.stationuuid === currentStation.stationuuid)
@@ -171,12 +177,11 @@ export default function App() {
       : [currentStation, ...favorites];
     setFavorites(next);
     localStorage.setItem(FAVORITES_KEY, JSON.stringify(next));
-    const countryObj: Country = { name: currentStation.country, stationcount: 0, iso_3166_1: currentStation.countrycode ?? "" };
     if (already) {
-      trackFavoriteRemoved(currentStation, countryObj);
+      trackFavoriteRemoved(currentStation, "player");
       showToast(`${currentStation.name} removed from your library`, "removed");
     } else {
-      trackFavoriteAdded(currentStation, countryObj);
+      trackFavoriteAdded(currentStation, "player");
       showToast(`${currentStation.name} added to your library`, "added");
     }
   }, [currentStation, favorites, showToast]);
@@ -185,7 +190,16 @@ export default function App() {
     const next = favorites.filter((f) => f.stationuuid !== s.stationuuid);
     setFavorites(next);
     localStorage.setItem(FAVORITES_KEY, JSON.stringify(next));
+    trackFavoriteRemoved(s, "library");
   }, [favorites]);
+
+  // Nav: switch primary view (sidebar / mobile tab bar)
+  const handleNav = useCallback((next: View) => {
+    setView((prev) => {
+      if (next !== prev) trackViewChanged(next, prev);
+      return next;
+    });
+  }, []);
 
   const handleShare = useCallback(() => {
     if (!currentStation) return;
@@ -195,7 +209,7 @@ export default function App() {
     url.searchParams.set("station", currentStation.stationuuid);
     setShareUrl(url.toString());
     setShareOpen(true);
-    trackStationShared(currentStation, { name: currentStation.country, stationcount: 0, iso_3166_1: currentStation.countrycode ?? "" });
+    trackStationShared(currentStation, "now_playing");
   }, [currentStation]);
 
   const viewProps = { current: currentStation, playing: isPlaying, onPlay: handlePlay, onOpen: handleOpen };
@@ -219,7 +233,7 @@ export default function App() {
       >
         {/* Desktop sidebar */}
         {!compact && (
-          <Sidebar view={view} onNav={setView} favCount={favorites.length} />
+          <Sidebar view={view} onNav={handleNav} favCount={favorites.length} />
         )}
 
         {/* Main column */}
@@ -272,12 +286,12 @@ export default function App() {
               <MiniPlayer
                 station={currentStation}
                 onNext={handleNext}
-                onExpand={() => setNpOpen(true)}
+                onExpand={() => { setNpOpen(true); trackNowPlayingOpened(currentStation, "mini_player"); }}
                 isFav={isFav}
                 onFav={handleToggleFav}
               />
             )}
-            {compact && <MobileNav view={view} onNav={setView} favCount={favorites.length} />}
+            {compact && <MobileNav view={view} onNav={handleNav} favCount={favorites.length} />}
           </div>
         </div>
 

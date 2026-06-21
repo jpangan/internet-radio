@@ -1,13 +1,18 @@
 "use client";
 
 import { useTheme } from "./ThemeProvider";
+import { trackThemeToggled } from "@/lib/analytics";
 
 export default function ThemeToggle({ wide }: { wide?: boolean }) {
   const { theme, toggle } = useTheme();
+  const handleToggle = () => {
+    trackThemeToggled(theme === "dark" ? "light" : "dark");
+    toggle();
+  };
   return (
     <button
       type="button"
-      onClick={toggle}
+      onClick={handleToggle}
       aria-label="Toggle theme"
       style={{
         display: "flex", alignItems: "center",
