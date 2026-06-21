@@ -231,7 +231,7 @@ export default function App() {
           {compact && (
             <div style={{
               display: "flex", alignItems: "center", justifyContent: "space-between",
-              padding: "max(env(safe-area-inset-top), 14px) 18px 10px",
+              padding: "var(--app-header-pad-top) 18px 10px",
               background: "var(--v-bg)",
               borderBottom: "1px solid var(--v-hairline)",
               flexShrink: 0, zIndex: 30, position: "relative",

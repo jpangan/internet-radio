@@ -1,23 +1,9 @@
 @import "tailwindcss";
 
-@font-face {
-  font-family: "Inter Variable";
-  font-style: normal;
-  font-weight: 100 900;
-  font-display: swap;
-  src: url("/fonts/InterVariable.woff2") format("woff2");
-}
-
-@font-face {
-  font-family: "Inter Variable";
-  font-style: italic;
-  font-weight: 100 900;
-  font-display: swap;
-  src: url("/fonts/InterVariable-Italic.woff2") format("woff2");
-}
-
+/* Inter is loaded via next/font/local (see app/layout.tsx), which provides the
+   --font-inter variable plus size-adjusted fallback metrics and a preload. */
 @theme {
-  --font-sans: "Inter Variable", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-sans: var(--font-inter), system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 }
 
 /* ─── V2 design tokens — dark (default) ─────────────────────── */
@@ -100,7 +86,7 @@
 
 /* ─── V2 shared constants (theme-independent) ────────────────── */
 :root {
-  --v-font: "Inter Variable", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --v-font: var(--font-inter), system-ui, -apple-system, "Segoe UI", sans-serif;
   --v-r-sm: 10px;
   --v-r-md: 14px;
   --v-r-lg: 20px;
@@ -129,6 +115,12 @@
   --live-soft: rgba(52, 211, 153, 0.12);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
   --safe-top: env(safe-area-inset-top, 0px);
+  /* Top padding for the app's topmost header row. In a normal browser tab the
+     chrome already clears the status bar / dynamic island, so we just keep a
+     14px minimum. In installed PWA mode the app draws under the status bar, so
+     we switch to inset + 16px for breathing room (see the display-mode:
+     standalone override below). */
+  --app-header-pad-top: max(env(safe-area-inset-top), 14px);
   --background: #07070f;
   --foreground: #ffffff;
   --muted: rgba(255, 255, 255, 0.4);
@@ -144,7 +136,7 @@ html {
 body {
   background: var(--bg);
   color: var(--fg);
-  font-family: "Inter Variable", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-family: var(--font-inter), system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   font-synthesis: none;
   overscroll-behavior: none;
 }
@@ -281,6 +273,12 @@ body {
 @media (display-mode: standalone) {
   .player-controls {
     padding-bottom: max(1rem, env(safe-area-inset-bottom));
+  }
+  /* Installed PWA: content sits under the status bar / dynamic island, so push
+     the top header down by the top safe-area inset plus a 16px gap. On desktop
+     PWAs the inset is 0px, so this resolves to 16px. */
+  :root {
+    --app-header-pad-top: calc(env(safe-area-inset-top) + 16px);
   }
 }
 

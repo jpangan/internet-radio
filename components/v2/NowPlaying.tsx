@@ -77,6 +77,9 @@ export default function NowPlaying({ station, open, onClose, onNext, onPrev, isF
       <div style={{
         position: "relative", height: "100%", display: "flex", flexDirection: "column",
         alignItems: "center", padding: "clamp(18px, 3vw, 34px)", overflowY: "auto",
+        // Full-bleed overlay: clear the status bar / dynamic island. The inset is
+        // 0 in a browser tab and the island height in an installed PWA.
+        paddingTop: "calc(env(safe-area-inset-top) + clamp(18px, 3vw, 34px))",
       }}>
         {/* Top bar */}
         <div style={{ width: "100%", maxWidth: 520, display: "flex", alignItems: "center", justifyContent: "space-between", color: "#fff" }}>

@@ -210,7 +210,10 @@ export default function AudioEngine({
       album: "Internet Radio",
       artwork: station.favicon
         ? [{ src: station.favicon, sizes: "96x96", type: "image/png" }]
-        : [{ src: "/icon.png", sizes: "192x192", type: "image/png" }],
+        : [
+            { src: "/icon-192.png", sizes: "192x192", type: "image/png" },
+            { src: "/icon-512.png", sizes: "512x512", type: "image/png" },
+          ],
     });
     navigator.mediaSession.setActionHandler("play", play);
     navigator.mediaSession.setActionHandler("pause", pause);

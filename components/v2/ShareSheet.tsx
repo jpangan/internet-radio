@@ -137,16 +137,8 @@ export default function ShareSheet({ open, station, onClose, url }: ShareSheetPr
                   alignItems: "center", justifyContent: "center", pointerEvents: "none",
                 }}>
                   <div style={{ width: 38, height: 38, borderRadius: 10, background: "#fff", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 0 0 4px #fff" }}>
-                    <div style={{
-                      width: 32, height: 32, borderRadius: 9,
-                      background: "linear-gradient(135deg, var(--v-accent), var(--v-accent-2))",
-                      display: "flex", alignItems: "center", justifyContent: "center", color: "#fff",
-                    }}>
-                      <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                        <path d="M16 12a4 4 0 0 1-8 0"/><path d="M12 12v9"/><circle cx="12" cy="12" r="2"/>
-                        <path d="M12 3v1M4.2 6.2l.7.7M19.1 6.2l-.7.7M2 12h1M21 12h1"/>
-                      </svg>
-                    </div>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src="/app-icon.svg" alt="" width={32} height={32} style={{ width: 32, height: 32, borderRadius: 8 }} />
                   </div>
                 </div>
               </div>
