@@ -26,7 +26,12 @@ export default function NowPlaying({ station, open, onClose, onNext, onPrev, isF
   const { isPlaying, isLoading, volume, isMuted, error } = useAudioState();
   const { togglePlay, toggleMute, setVolume, retry } = useAudioControls();
   const ref = useRef<HTMLDivElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const controlsRef = useRef<HTMLDivElement>(null);
+  const dragStart = useRef<{ y: number; armed: boolean } | null>(null);
   const [px, setPx] = useState({ x: 0, y: 0 });
+  const [dragY, setDragY] = useState(0);
+  const [dragging, setDragging] = useState(false);
   const [elapsed, setElapsed] = useState(0);
 
   useEffect(() => {
@@ -36,6 +41,11 @@ export default function NowPlaying({ station, open, onClose, onNext, onPrev, isF
   }, [open, isPlaying]);
 
   useEffect(() => { setElapsed(0); }, [station]);
+
+  // Reset any in-progress swipe whenever the sheet is hidden.
+  useEffect(() => {
+    if (!open) { setDragY(0); setDragging(false); dragStart.current = null; }
+  }, [open]);
 
   if (!station) return null;
 
@@ -51,6 +61,37 @@ export default function NowPlaying({ station, open, onClose, onNext, onPrev, isF
     setPx({ x: (e.clientX - r.left) / r.width - 0.5, y: (e.clientY - r.top) / r.height - 0.5 });
   };
 
+  // ── Swipe-down-to-dismiss ──
+  // The gesture covers the whole sheet except the playback controls (so the
+  // transport buttons and volume slider keep their own touch handling). It only
+  // arms when the content is scrolled to the top, so scrollable content still
+  // scrolls normally.
+  const CLOSE_THRESHOLD = 110;
+  const onTouchStart = (e: React.TouchEvent) => {
+    if (e.touches.length !== 1) return;
+    if (controlsRef.current?.contains(e.target as Node)) return;
+    const atTop = (scrollRef.current?.scrollTop ?? 0) <= 0;
+    dragStart.current = { y: e.touches[0].clientY, armed: atTop };
+  };
+  const onTouchMove = (e: React.TouchEvent) => {
+    const s = dragStart.current;
+    if (!s || !s.armed) return;
+    const dy = e.touches[0].clientY - s.y;
+    if (dy <= 0) {
+      if (dragging) { setDragging(false); setDragY(0); }
+      return;
+    }
+    if (!dragging) setDragging(true);
+    setDragY(dy);
+  };
+  const onTouchEnd = () => {
+    dragStart.current = null;
+    if (!dragging) return;
+    setDragging(false);
+    if (dragY > CLOSE_THRESHOLD) onClose();
+    else setDragY(0);
+  };
+
   return (
     <div
       ref={ref}
@@ -59,8 +100,8 @@ export default function NowPlaying({ station, open, onClose, onNext, onPrev, isF
       aria-hidden={!open}
       style={{
         position: "absolute", inset: 0, zIndex: 60, overflow: "hidden",
-        transform: open ? "translateY(0)" : "translateY(100%)",
-        transition: "transform .5s var(--v-ease)",
+        transform: open ? `translateY(${dragY}px)` : "translateY(100%)",
+        transition: dragging ? "none" : "transform .5s var(--v-ease)",
         pointerEvents: open ? "auto" : "none",
       }}
     >
@@ -74,9 +115,16 @@ export default function NowPlaying({ station, open, onClose, onNext, onPrev, isF
       <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg, rgba(0,0,0,0.25), rgba(0,0,0,0.62))" }} />
 
       {/* Content */}
-      <div style={{
+      <div
+        ref={scrollRef}
+        onTouchStart={onTouchStart}
+        onTouchMove={onTouchMove}
+        onTouchEnd={onTouchEnd}
+        onTouchCancel={onTouchEnd}
+        style={{
         position: "relative", height: "100%", display: "flex", flexDirection: "column",
         alignItems: "center", padding: "clamp(18px, 3vw, 34px)", overflowY: "auto",
+        overscrollBehaviorY: "contain",
         // Full-bleed overlay: clear the status bar / dynamic island. The inset is
         // 0 in a browser tab and the island height in an installed PWA.
         paddingTop: "calc(env(safe-area-inset-top) + clamp(18px, 3vw, 34px))",
@@ -103,21 +151,15 @@ export default function NowPlaying({ station, open, onClose, onNext, onPrev, isF
 
         {/* Cover + meta */}
         <div style={{ flex: "0 0 auto", margin: "auto 0", display: "flex", flexDirection: "column", alignItems: "center", width: "100%", maxWidth: 520 }}>
-          {/* Cover with parallax */}
-          <div style={{
-            transform: `translate(${px.x * 16}px, ${px.y * 16}px) rotateX(${px.y * -5}deg) rotateY(${px.x * 5}deg)`,
-            transition: "transform .25s var(--v-ease-soft)",
-            transformStyle: "preserve-3d", perspective: 800,
-          }}>
-            <Cover
-              station={station}
-              size="min(64vw, 340px)"
-              radius="var(--v-r-xl)"
-              showInitials
-              playing={isPlaying}
-              style={{ boxShadow: "0 40px 90px rgba(0,0,0,0.5)" }}
-            />
-          </div>
+          {/* Cover */}
+          <Cover
+            station={station}
+            size="min(64vw, 340px)"
+            radius="var(--v-r-xl)"
+            showInitials
+            playing={isPlaying}
+            style={{ boxShadow: "0 40px 90px rgba(0,0,0,0.5)" }}
+          />
 
           {/* Meta */}
           <div style={{ width: "100%", marginTop: 30, color: "#fff" }}>
@@ -188,6 +230,8 @@ export default function NowPlaying({ station, open, onClose, onNext, onPrev, isF
               </span>
             </div>
 
+            {/* Playback controls — excluded from the swipe-to-dismiss area */}
+            <div ref={controlsRef}>
             {/* Transport */}
             <div style={{ marginTop: 26, display: "flex", alignItems: "center", justifyContent: "center", gap: 22 }}>
               <button type="button" onClick={onPrev} aria-label="Previous"
@@ -227,6 +271,7 @@ export default function NowPlaying({ station, open, onClose, onNext, onPrev, isF
                 className="v-range-light"
                 style={{ flex: 1, height: 4 }}
               />
+            </div>
             </div>
           </div>
         </div>
