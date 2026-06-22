@@ -14,6 +14,7 @@ import HomeView from "@/components/v2/HomeView";
 import SearchView from "@/components/v2/SearchView";
 import BrowseView from "@/components/v2/BrowseView";
 import LibraryView from "@/components/v2/LibraryView";
+import SplashScreen from "@/components/v2/SplashScreen";
 import { useQueryClient, queryKeys, fetchCountriesApi } from "@/lib/queries";
 import {
   trackStationSelected,
@@ -48,6 +49,7 @@ export default function App() {
   const hostRef = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(1200);
 
+  const [splash, setSplash] = useState(true);
   const [view, setView] = useState<View>("home");
   const [currentStation, setCurrentStation] = useState<Station | null>(null);
   const [playContext, setPlayContext] = useState<Station[]>([]);
@@ -223,6 +225,7 @@ export default function App() {
         fontFamily: "var(--v-font)",
       }}
     >
+      {splash && <SplashScreen onDone={() => setSplash(false)} />}
       <AudioEngine
         station={currentStation}
         stationList={playContext}
