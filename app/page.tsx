@@ -267,8 +267,8 @@ export default function App() {
             padding: compact ? "8px 18px 0" : "0 32px 0",
             paddingTop: compact ? undefined : "max(var(--app-header-pad-top), 24px)",
             paddingBottom: currentStation
-              ? (compact ? 150 : 80)
-              : (compact ? 80 : 28),
+              ? (compact ? "calc(150px + env(safe-area-inset-bottom, 0px))" : "calc(80px + env(safe-area-inset-bottom, 0px))")
+              : (compact ? "calc(80px + env(safe-area-inset-bottom, 0px))" : 28),
           }}>
             <div style={{ maxWidth: 1180, margin: "0 auto" }}>
               {view === "home" && <HomeView {...viewProps} compact={compact} />}
