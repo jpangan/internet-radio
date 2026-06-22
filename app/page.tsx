@@ -49,7 +49,7 @@ export default function App() {
   const hostRef = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(1200);
 
-  const [splash, setSplash] = useState(true);
+  const [splash, setSplash] = useState(false);
   const [view, setView] = useState<View>("home");
   const [currentStation, setCurrentStation] = useState<Station | null>(null);
   const [playContext, setPlayContext] = useState<Station[]>([]);
@@ -73,8 +73,11 @@ export default function App() {
 
   const compact = width < 760;
 
-  // Hydrate favorites
-  useEffect(() => { setFavorites(readFavorites()); }, []);
+  // Hydrate favorites + trigger splash after hydration
+  useEffect(() => {
+    setFavorites(readFavorites());
+    setSplash(true);
+  }, []);
 
   // Resolve shared URL on mount
   useEffect(() => {
