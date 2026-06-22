@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import QueryProvider from "@/components/QueryProvider";
 import PostHogProvider from "@/components/PostHogProvider";
 import ThemeProvider from "@/components/v2/ThemeProvider";
+import SwUpdateReloader from "@/components/v2/SwUpdateReloader";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -46,10 +47,8 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <head>
-        <link rel="preload" href="/fonts/InterVariable.woff2" as="font" type="font/woff2" crossOrigin="anonymous" />
-      </head>
       <body className="antialiased">
+        <SwUpdateReloader />
         <PostHogProvider>
           <QueryProvider>
             <ThemeProvider>{children}</ThemeProvider>
