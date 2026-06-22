@@ -69,7 +69,7 @@ export default function Cover({
       {hasFavicon && (
         // eslint-disable-next-line @next/next/no-img-element
         <img
-          src={station.favicon}
+          src={station.favicon.replace(/^http:\/\//i, "https://")}
           alt=""
           onError={() => setFaviconError(true)}
           style={{
