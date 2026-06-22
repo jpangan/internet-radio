@@ -3,17 +3,39 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import TopBar from "./TopBar";
 import CountryCard from "./CountryCard";
-import GenreTile, { GENRES } from "./GenreTile";
 import ListRow from "./ListRow";
 import { useCountries, useInfiniteStations } from "@/lib/queries";
 import {
   trackStationSearched,
-  trackGenreSelected,
   trackCountryBrowsed,
   trackLoadMore,
 } from "@/lib/analytics";
 import type { Country, Station } from "@/lib/types";
 import FlagIcon from "@/components/FlagIcon";
+
+const MAX_RECENT_SEARCHES = 5;
+const RECENT_SEARCHES_KEY = "internet-radio:recent-searches";
+
+function getRecentSearches(): string[] {
+  try {
+    return JSON.parse(localStorage.getItem(RECENT_SEARCHES_KEY) ?? "[]");
+  } catch {
+    return [];
+  }
+}
+
+function saveRecentSearch(query: string) {
+  const trimmed = query.trim();
+  if (!trimmed) return;
+  const recent = getRecentSearches().filter((q) => q !== trimmed);
+  recent.unshift(trimmed);
+  localStorage.setItem(RECENT_SEARCHES_KEY, JSON.stringify(recent.slice(0, MAX_RECENT_SEARCHES)));
+}
+
+function removeRecentSearch(query: string) {
+  const recent = getRecentSearches().filter((q) => q !== query);
+  localStorage.setItem(RECENT_SEARCHES_KEY, JSON.stringify(recent));
+}
 
 interface SearchViewProps {
   current: Station | null;
@@ -79,6 +101,14 @@ function CountryDrill({ country, current, playing, onPlay, onOpen, onBack }: {
 export default function SearchView({ current, playing, onPlay, onOpen }: SearchViewProps) {
   const [q, setQ] = useState("");
   const [selectedCountry, setSelectedCountry] = useState<Country | null>(null);
+  const [inputFocused, setInputFocused] = useState(false);
+  const [recentSearches, setRecentSearches] = useState<string[]>([]);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    inputRef.current?.focus();
+    setRecentSearches(getRecentSearches());
+  }, []);
 
   const { data: countries } = useCountries();
   const {
@@ -95,26 +125,37 @@ export default function SearchView({ current, playing, onPlay, onOpen }: SearchV
     ? countries.filter((c) => c.name.toLowerCase().includes(q.trim().toLowerCase()))
     : [];
 
-  // Track searches once they settle (debounced), reading the latest result
-  // count via a ref so paginating later doesn't re-fire the event.
+  // Track searches once they settle (debounced), save to recent searches
   const resultCountRef = useRef(0);
   resultCountRef.current = searchResults.length;
   useEffect(() => {
     const query = q.trim();
     if (!query) return;
-    const t = setTimeout(() => trackStationSearched(query, resultCountRef.current), 800);
+    const t = setTimeout(() => {
+      trackStationSearched(query, resultCountRef.current);
+      saveRecentSearch(query);
+      setRecentSearches(getRecentSearches());
+    }, 800);
     return () => clearTimeout(t);
   }, [q]);
-
-  const handleGenre = useCallback((tag: string) => {
-    trackGenreSelected(tag);
-    setQ(tag);
-  }, []);
 
   const handleSelectCountry = useCallback((c: Country) => {
     setSelectedCountry(c);
     trackCountryBrowsed(c, "search");
   }, []);
+
+  const handleRecentSearch = useCallback((term: string) => {
+    setQ(term);
+    setInputFocused(false);
+    inputRef.current?.blur();
+  }, []);
+
+  const handleRemoveRecentSearch = useCallback((term: string) => {
+    removeRecentSearch(term);
+    setRecentSearches(getRecentSearches());
+  }, []);
+
+  const showRecentSearches = inputFocused && !q.trim() && recentSearches.length > 0;
 
   if (selectedCountry) {
     return (
@@ -136,21 +177,78 @@ export default function SearchView({ current, playing, onPlay, onOpen }: SearchV
       {/* Search input */}
       <div style={{ position: "relative", marginBottom: 24, maxWidth: 560 }}>
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"
-          style={{ position: "absolute", left: 16, top: "50%", transform: "translateY(-50%)", color: "var(--v-fg-3)", pointerEvents: "none" }}>
+          style={{ position: "absolute", left: 16, top: "50%", transform: "translateY(-50%)", color: "var(--v-fg-3)", pointerEvents: "none", zIndex: 1 }}>
           <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
         </svg>
         <input
+          ref={inputRef}
           value={q}
           onChange={(e) => setQ(e.target.value)}
+          onFocus={() => setInputFocused(true)}
+          onBlur={() => setTimeout(() => setInputFocused(false), 150)}
           placeholder="Stations, genres, countries…"
           style={{
             width: "100%", padding: "14px 16px 14px 46px", fontSize: 16,
             fontFamily: "var(--v-font)", fontWeight: 500,
             color: "var(--v-fg)", background: "var(--v-elev-2)",
-            border: "1px solid var(--v-hairline)", borderRadius: "var(--v-r-md)",
+            border: "1px solid var(--v-hairline)",
+            borderRadius: "var(--v-r-md)",
             outline: "none",
           }}
         />
+        {showRecentSearches && (
+          <div style={{
+            position: "absolute", top: "calc(100% + 6px)", left: 0, right: 0,
+            background: "var(--v-mat-chrome)",
+            backdropFilter: "var(--v-mat-blur)",
+            WebkitBackdropFilter: "var(--v-mat-blur)",
+            border: "1px solid var(--v-hairline)",
+            borderRadius: "var(--v-r-md)",
+            overflow: "hidden", zIndex: 10,
+            boxShadow: "0 8px 32px rgba(0,0,0,0.35)",
+            animation: "recent-in 0.18s cubic-bezier(0.32,0.72,0,1) both",
+          }}>
+            {recentSearches.map((term, i) => (
+              <div
+                key={term}
+                style={{
+                  display: "flex", alignItems: "center",
+                  borderTop: i > 0 ? "1px solid var(--v-hairline)" : "none",
+                }}
+              >
+                <button
+                  type="button"
+                  onMouseDown={() => handleRecentSearch(term)}
+                  style={{
+                    display: "flex", alignItems: "center", gap: 10, flex: 1,
+                    padding: "9px 8px 9px 14px", textAlign: "left",
+                    background: "none", border: "none", cursor: "pointer",
+                    color: "var(--v-fg-2)", fontSize: 13.5, fontFamily: "var(--v-font)",
+                  }}
+                >
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" style={{ color: "var(--v-fg-4)", flexShrink: 0 }}>
+                    <path d="M3 3v5h5"/><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"/>
+                  </svg>
+                  {term}
+                </button>
+                <button
+                  type="button"
+                  onMouseDown={() => handleRemoveRecentSearch(term)}
+                  style={{
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    padding: "9px 13px", background: "none", border: "none",
+                    cursor: "pointer", color: "var(--v-fg-4)", flexShrink: 0,
+                  }}
+                  aria-label={`Remove "${term}" from recent searches`}
+                >
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                    <path d="M18 6 6 18M6 6l12 12"/>
+                  </svg>
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {q.trim() ? (
@@ -207,27 +305,7 @@ export default function SearchView({ current, playing, onPlay, onOpen }: SearchV
         ) : (
           <div style={{ fontSize: 13, color: "var(--v-fg-3)", padding: "12px 4px" }}>Searching…</div>
         )
-      ) : (
-        <div>
-          <h2 style={{ margin: "0 4px 14px", fontSize: 21, fontWeight: 750, letterSpacing: "-0.02em", color: "var(--v-fg)" }}>
-            Browse by country
-          </h2>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 10, marginBottom: 30 }}>
-            {(countries ?? []).map((c) => (
-              <CountryCard key={c.iso_3166_1} country={c} onClick={() => handleSelectCountry(c)} />
-            ))}
-          </div>
-
-          <h2 style={{ margin: "0 4px 14px", fontSize: 21, fontWeight: 750, letterSpacing: "-0.02em", color: "var(--v-fg)" }}>
-            Browse all genres
-          </h2>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: 12 }}>
-            {GENRES.map((genre) => (
-              <GenreTile key={genre.tag} genre={genre} onClick={() => handleGenre(genre.tag)} />
-            ))}
-          </div>
-        </div>
-      )}
+      ) : null}
     </div>
   );
 }
