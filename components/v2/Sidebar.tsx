@@ -52,7 +52,9 @@ export default function Sidebar({ view, onNav, favCount }: SidebarProps) {
   return (
     <nav style={{
       width: 248, flexShrink: 0, height: "100%", display: "flex", flexDirection: "column",
-      padding: "20px 14px", gap: 6, borderRight: "1px solid var(--v-hairline)",
+      paddingTop: "max(var(--app-header-pad-top), 20px)",
+      paddingBottom: 20, paddingLeft: 14, paddingRight: 14,
+      gap: 6, borderRight: "1px solid var(--v-hairline)",
       background: "var(--v-bg-2)",
     }}>
       <div style={{ padding: "4px 10px 18px" }}>

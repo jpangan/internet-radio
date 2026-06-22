@@ -265,6 +265,7 @@ export default function App() {
           <main style={{
             flex: 1, minHeight: 0, overflowY: "auto",
             padding: compact ? "8px 18px 0" : "0 32px 0",
+            paddingTop: compact ? undefined : "max(var(--app-header-pad-top), 24px)",
             paddingBottom: currentStation
               ? (compact ? 150 : 80)
               : (compact ? 80 : 28),
