@@ -15,6 +15,11 @@ const withPWA = withPWAInit({
     disableDevLogs: true,
     skipWaiting: true,
     clientsClaim: true,
+    // Precache the font at its stable public URL so it's always available
+    // offline and never falls through to a runtime-cache miss on iOS.
+    additionalManifestEntries: [
+      { url: "/fonts/InterVariable.woff2", revision: null },
+    ],
   },
 });
 

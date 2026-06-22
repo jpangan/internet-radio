@@ -1,9 +1,27 @@
 @import "tailwindcss";
 
-/* Inter is loaded via next/font/local (see app/layout.tsx), which provides the
-   --font-inter variable plus size-adjusted fallback metrics and a preload. */
+/* Inter Variable — served from /public/fonts/ so the URL is stable across
+   Vercel deployments (next/font hashes change per build, breaking iOS caches). */
+@font-face {
+  font-family: 'Inter';
+  src: url('/fonts/InterVariable.woff2') format('woff2');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Size-adjusted Arial fallback to minimise layout shift while Inter loads. */
+@font-face {
+  font-family: 'Inter Fallback';
+  src: local('Arial');
+  ascent-override: 90.44%;
+  descent-override: 22.52%;
+  line-gap-override: 0%;
+  size-adjust: 107.12%;
+}
+
 @theme {
-  --font-sans: var(--font-inter), system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-sans: 'Inter', 'Inter Fallback', system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 }
 
 /* ─── V2 design tokens — dark (default) ─────────────────────── */
@@ -86,7 +104,8 @@
 
 /* ─── V2 shared constants (theme-independent) ────────────────── */
 :root {
-  --v-font: var(--font-inter), system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-inter: 'Inter', 'Inter Fallback', system-ui, -apple-system, "Segoe UI", sans-serif;
+  --v-font: var(--font-inter);
   --v-r-sm: 10px;
   --v-r-md: 14px;
   --v-r-lg: 20px;

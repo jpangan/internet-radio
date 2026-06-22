@@ -1,23 +1,8 @@
 import type { Metadata, Viewport } from "next";
-import localFont from "next/font/local";
 import QueryProvider from "@/components/QueryProvider";
 import PostHogProvider from "@/components/PostHogProvider";
 import ThemeProvider from "@/components/v2/ThemeProvider";
 import "./globals.css";
-
-// Self-hosted Inter via next/font: emits the file under /_next/static/media
-// (which the PWA service worker precaches), injects a preload <link>, and adds
-// size-adjusted fallback metrics. Exposed as the --font-inter CSS variable.
-const inter = localFont({
-  src: [
-    { path: "./fonts/InterVariable.woff2", style: "normal", weight: "100 900" },
-    { path: "./fonts/InterVariable-Italic.woff2", style: "italic", weight: "100 900" },
-  ],
-  variable: "--font-inter",
-  display: "swap",
-  preload: true,
-  fallback: ["system-ui", "-apple-system", "Segoe UI", "Roboto", "sans-serif"],
-});
 
 export const metadata: Metadata = {
   title: "GhostRadio",
@@ -60,7 +45,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={inter.variable}>
+    <html lang="en">
+      <head>
+        <link rel="preload" href="/fonts/InterVariable.woff2" as="font" type="font/woff2" crossOrigin="anonymous" />
+      </head>
       <body className="antialiased">
         <PostHogProvider>
           <QueryProvider>
